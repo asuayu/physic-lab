@@ -12,7 +12,6 @@ concurrency:
 
 permissions:
   contents: read
-  deployments: write
 
 jobs:
   deploy:
@@ -43,12 +42,9 @@ jobs:
 
       - name: Deploy to Cloudflare Pages
         if: env.CLOUDFLARE_API_TOKEN != ''
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
-          accountId: 47043a206554e7ec3527298aefbc0bc0
-          command: pages deploy dist --project-name=physics
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+        run: npx --yes wrangler@latest pages deploy dist --project-name=physics
+        env:
+          CLOUDFLARE_ACCOUNT_ID: 47043a206554e7ec3527298aefbc0bc0
 
       - name: Cloudflare token is not configured
         if: env.CLOUDFLARE_API_TOKEN == ''
