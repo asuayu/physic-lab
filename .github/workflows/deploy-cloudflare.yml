@@ -42,7 +42,20 @@ jobs:
 
       - name: Deploy to Cloudflare Pages
         if: env.CLOUDFLARE_API_TOKEN != ''
-        run: npx --yes wrangler@latest pages deploy dist --project-name=physics
+        shell: bash
+        run: |
+          set +e
+          OUTPUT="$(npx --yes wrangler@latest pages deploy dist --project-name=physics 2>&1)"
+          STATUS=$?
+          set -e
+
+          printf '%s\n' "$OUTPUT"
+
+          if [ "$STATUS" -ne 0 ]; then
+            SUMMARY="$(printf '%s\n' "$OUTPUT" | tail -n 25 | tr '\n' ' ' | sed 's/%/%25/g')"
+            echo "::error title=Cloudflare deployment failed::$SUMMARY"
+            exit "$STATUS"
+          fi
         env:
           CLOUDFLARE_ACCOUNT_ID: 47043a206554e7ec3527298aefbc0bc0
 
