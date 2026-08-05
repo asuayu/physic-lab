@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Pages
+name: Deploy to Cloudflare Workers
 
 on:
   push:
@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          OUTPUT="$(npx --yes wrangler@latest pages deploy dist --project-name=physics 2>&1)"
+          OUTPUT="$(npx --yes wrangler@latest deploy 2>&1)"
           STATUS=$?
           set -e
 
@@ -53,7 +53,7 @@ jobs:
 
           if [ "$STATUS" -ne 0 ]; then
             SUMMARY="$(printf '%s\n' "$OUTPUT" | tail -n 25 | tr '\n' ' ' | sed 's/%/%25/g')"
-            echo "::error title=Cloudflare deployment failed::$SUMMARY"
+            echo "::error title=Cloudflare Workers deployment failed::$SUMMARY"
             exit "$STATUS"
           fi
         env:

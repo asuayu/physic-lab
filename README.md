@@ -59,10 +59,10 @@
 
 ## 自动部署
 
-推送到 GitHub 仓库的 `main` 分支后，GitHub Actions 会执行内容检查和生产构建，随后将 `dist` 自动部署到 Cloudflare Pages 的 `physics` 项目。
+推送到 GitHub 仓库的 `main` 分支后，GitHub Actions 会执行内容检查和生产构建，随后将 `dist` 作为静态资源自动部署到 Cloudflare Workers 的 `physics` 项目。
 
 仓库需要配置 GitHub Actions Secret：
 
-- `CLOUDFLARE_API_TOKEN`：具有目标账户 `Cloudflare Pages: Edit` 权限的 Cloudflare API Token。
+- `CLOUDFLARE_API_TOKEN`：具有目标账户 `Workers Scripts: Edit` 权限的 Cloudflare API Token。
 
-工作流配置位于 `.github/workflows/deploy-cloudflare.yml`。Cloudflare Account ID 和项目名不是凭据，已直接记录在工作流中；API Token 不得写入仓库。
+Worker 静态资源配置位于 `wrangler.jsonc`，工作流配置位于 `.github/workflows/deploy-cloudflare.yml`。Cloudflare Account ID 和项目名不是凭据，已直接记录在工作流中；API Token 不得写入仓库。
