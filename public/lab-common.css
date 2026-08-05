@@ -1,0 +1,101 @@
+/* Shared usability and responsive enhancements for all standalone simulations. */
+* {
+    box-sizing: border-box;
+}
+
+button,
+select,
+input[type="range"],
+.btn-home {
+    touch-action: manipulation;
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+.btn-home:focus-visible,
+canvas:focus-visible {
+    outline: 3px solid #38bdf8;
+    outline-offset: 3px;
+}
+
+.canvas-container {
+    min-width: 0;
+    min-height: 0;
+}
+
+@media (max-width: 900px) {
+    body {
+        flex-direction: column;
+        height: 100dvh;
+        min-height: 100dvh;
+    }
+
+    .controls {
+        width: 100% !important;
+        max-height: 42dvh;
+        flex: 0 0 auto;
+        padding: 14px 16px !important;
+        gap: 10px !important;
+        border-right: 0 !important;
+        border-bottom: 1px solid #334155;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .canvas-container {
+        flex: 1 1 auto;
+        min-height: 58dvh;
+    }
+
+    .status,
+    .status-box {
+        top: 12px !important;
+        left: 12px !important;
+        right: auto !important;
+        max-width: calc(100% - 24px);
+        min-width: 0 !important;
+        padding: 10px 12px !important;
+        font-size: 12px !important;
+    }
+
+    .physics-env {
+        right: 12px !important;
+        bottom: 12px !important;
+        max-width: calc(100% - 24px);
+        font-size: 12px !important;
+    }
+
+    .btn-home {
+        top: 10px !important;
+        right: 12px !important;
+    }
+}
+
+@media (max-width: 520px) {
+    .controls {
+        max-height: 46dvh;
+    }
+
+    .canvas-container {
+        min-height: 54dvh;
+    }
+
+    h2 {
+        font-size: 1.05rem !important;
+        padding-right: 88px;
+    }
+
+    button,
+    select {
+        min-height: 40px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}

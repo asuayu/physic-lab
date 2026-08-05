@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第一宇宙速度与牛顿大炮 (Physics Lab)</title>
+    <style>
+        :root {
+            --bg-main: #020617;      
+            --panel-bg: #0f172a;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            
+            --accent: #f59e0b;       /* 核心主色调: 能量橙 */
+            --earth: #3b82f6;        
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            background-image: radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%);
+        }
+
+        .controls {
+            width: 340px;
+            background-color: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            box-shadow: 4px 0 25px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 10;
+            border-right: 1px solid #1e293b;
+            overflow-y: auto;
+        }
+
+        h2 { 
+            margin: 0; 
+            font-size: 1.3rem; 
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        h2::before {
+            content: '';
+            display: block;
+            width: 5px;
+            height: 24px;
+            background: var(--accent);
+            border-radius: 4px;
+        }
+        
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        
+        label { 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 0.95rem; 
+            color: var(--text-muted); 
+            font-weight: 500;
+        }
+
+        input[type="range"] { 
+            width: 100%; 
+            cursor: pointer; 
+            accent-color: var(--accent);
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: var(--text-main);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        button:hover { background: #334155; }
+        
+        .btn-fire { background: var(--accent); border: none; color: #fff; }
+        .btn-fire:hover { background: #d97706; box-shadow: 0 0 20px rgba(245,158,11,0.4); }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 5px; }
+
+        .legend { 
+            font-size: 0.85rem; 
+            background: rgba(2, 6, 23, 0.6); 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-top: auto; 
+            border: 1px solid #1e293b;
+            line-height: 1.5;
+        }
+
+        .canvas-container {
+            flex-grow: 1;
+            position: relative;
+        }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        .status-box {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 16px;
+            border-radius: 12px;
+            pointer-events: none;
+            font-family: monospace;
+            font-size: 14px;
+            border: 1px solid #334155;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            line-height: 1.6;
+            color: var(--text-muted);
+            min-width: 250px;
+        }
+
+        .btn-home {
+            position: absolute; 
+            top: 15px; 
+            left: 370px; 
+            z-index: 9999; 
+            padding: 6px 12px; 
+            background: rgba(30, 41, 59, 0.9); 
+            border: 1px solid #334155; 
+            color: var(--text-muted); 
+            text-decoration: none; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .btn-home:hover {
+            color: var(--accent);
+            border-color: var(--accent);
+            background: rgba(245, 158, 11, 0.1);
+        }
+    </style>
+    <link rel="stylesheet" href="/lab-common.css">
+    <script src="/lab-runtime.js"></script>
+</head>
+<body>
+<a href="/" class="btn-home"> 🏠 返回展厅 </a>
+<div class="controls">
+    <h2>牛顿大炮思维实验</h2>
+    
+    <div style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; margin-bottom:10px;">
+        在极其高耸的山顶上架设一门火炮，探究“平抛”与“卫星”这两者的统一性，验证神奇的第一宇宙速度！
+    </div>
+
+    <div class="control-group" style="margin-top: 15px;">
+        <label><span>炮弹发射初速度 v₀:</span> <span id="val_v" style="color:var(--accent); font-weight:bold;">80</span></label>
+        <input type="range" id="input_v" min="0" max="150" step="1" value="80">
+        
+        <div style="display: flex; justify-content: space-between; font-size: 10px; color: #64748b; padding: 0 5px;">
+            <span>0 (自由落体)</span>
+            <span style="color:#10b981;">v=100 (第一宇宙速度)</span>
+            <span>150 (椭圆逃逸)</span>
+        </div>
+    </div>
+
+    <div class="control-group" style="margin-top: 15px;">
+        <button class="btn-fire" onclick="fireCannon()">⚡ 立即开炮</button>
+        <button onclick="clearShells()" style="margin-top: 8px;">🧹 清理历史弹痕</button>
+    </div>
+
+    <div class="legend">
+        <strong style="color:var(--text-main); display:block; margin-bottom:8px;">现象推演：</strong>
+        <div style="color:#fca5a5; margin-bottom:4px">v < 100：炮弹受重力拉扯，轨迹弧线陡峭，最终撞击地球表面产生爆炸。</div>
+        <div style="color:#6ee7b7; margin-bottom:4px">v = 100：炮弹下坠的弧度与地球表面弧度完全吻合，成功成为一颗永远打圈的卫星。</div>
+        <div style="color:#c4b5fd;">v > 100：动能过大，形成抛远点更高的庞大椭圆形轨道。</div>
+    </div>
+</div>
+
+<div class="canvas-container" id="canvas-container">
+    <div class="status-box" id="statusBox">准备发射...</div>
+    <canvas id="simCanvas" role="img" tabindex="0" aria-label="牛顿大炮与第一宇宙速度轨道仿真"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 天体物理常量
+    const MU = 1700000;    // 引力常数参数 GM
+    const RE = 150;        // 地球像素半径
+    const MOUNT_H = 20;    // 高山高度
+    const R0 = RE + MOUNT_H; // 发射点轨高 (170)
+    
+    // v = sqrt(GM/r) = sqrt(1700000 / 170) = 100
+    const FIRST_COSMIC_VELOCITY = 100;
+
+    let shells = [];  // 所有射出的炮弹阵列
+    
+    let state = {
+        simSpeed: 1.0,      // 倍速
+        cx: 0, cy: 0,
+        running: false
+    };
+
+    let animationId = null;
+    let lastFrameTime = 0;
+
+    // UI 绑定
+    const ui = {
+        sliderV: document.getElementById('input_v'),
+        valV: document.getElementById('val_v'),
+        status: document.getElementById('statusBox')
+    };
+
+    function resize() {
+        const container = document.getElementById('canvas-container');
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        state.cx = canvas.width / 2;
+        state.cy = canvas.height / 2;
+        drawFrame();
+    }
+    window.addEventListener('resize', resize);
+
+    ui.sliderV.addEventListener('input', (e) => {
+        ui.valV.textContent = e.target.value;
+    });
+
+    // 颜色渐变函数，不同速度分配不同弹道色彩
+    function getTrajectoryColor(v) {
+        if (v < 80) return 'rgba(239, 68, 68, 0.6)';       // 红
+        if (v < 98) return 'rgba(245, 158, 11, 0.6)';      // 橙
+        if (v <= 102) return 'rgba(16, 185, 129, 0.8)';    // 第一宇宙速度 绿
+        if (v < 130) return 'rgba(59, 130, 246, 0.6)';     // 蓝
+        return 'rgba(139, 92, 246, 0.6)';                  // 高速紫
+    }
+
+    function fireCannon() {
+        const v0 = parseFloat(ui.sliderV.value);
+        
+        let newShell = {
+            id: Date.now() + Math.random(),
+            x: 0, 
+            y: -R0,
+            vx: v0,  // 水平向右开炮
+            vy: 0,
+            color: getTrajectoryColor(v0),
+            points: [{x: 0, y: -R0}],
+            finished: false,
+            crashed: false,
+            survivedRounds: 0,
+            v_initial: v0,
+            angleSum: 0,     // 用于记录绕了多少角度，从而判断环绕圈数
+            lastAngle: -Math.PI / 2
+        };
+        
+        shells.push(newShell);
+        
+        if (!state.running) {
+            state.running = true;
+            lastFrameTime = 0;
+            animationId = requestAnimationFrame(animate);
+        }
+    }
+
+    function clearShells() {
+        shells = [];
+        updateStatus();
+        drawFrame();
+    }
+
+    function updateStatus() {
+        let activeCount = shells.filter(s => !s.finished).length;
+        let crashedCount = shells.filter(s => s.crashed).length;
+        let orbitedCount = shells.filter(s => s.survivedRounds > 0 && !s.crashed).length;
+
+        ui.status.innerHTML = `
+            <div style="margin-bottom:8px; font-weight:bold; font-size:1.1em; color:#f8fafc">
+                实时射击阵列监控
+            </div>
+            <div style="margin-bottom:4px">飞行中的炮弹数: <span style="color:#f59e0b">${activeCount}</span> 枚</div>
+            <hr style="border-color:#334155; margin:8px 0;">
+            <div style="margin-bottom:4px; color:#fca5a5">因曲率坠落总数: ${crashedCount} 枚</div>
+            <div style="margin-bottom:4px; color:#6ee7b7">成功环绕入轨总数: ${orbitedCount} 枚</div>
+            <div style="margin-top:10px; font-size:12px; color:#64748b;">*理论闭合第一宇宙速度: v=${FIRST_COSMIC_VELOCITY}</div>
+        `;
+        
+        // 当最后残存弹幕全都落下帷幕，暂停循环
+        if (shells.length > 0 && activeCount === 0) {
+            state.running = false;
+        }
+    }
+
+
+    function drawFrame() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 绘制星空
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        for(let i=0; i<50; i++) {
+            let sx = (i * 89) % canvas.width;
+            let sy = (i * 113) % canvas.height;
+            ctx.fillRect(sx, sy, 2, 2);
+        }
+
+        ctx.save();
+        ctx.translate(state.cx, state.cy); 
+
+        // 绘制各炮弹尾迹
+        for (let shell of shells) {
+            if (shell.points.length > 1) {
+                ctx.beginPath();
+                ctx.moveTo(shell.points[0].x, shell.points[0].y);
+                for(let i=1; i<shell.points.length; i++) {
+                    ctx.lineTo(shell.points[i].x, shell.points[i].y);
+                }
+                ctx.strokeStyle = shell.color;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+
+            // 如果碰地，画一个小型爆炸点
+            if (shell.crashed) {
+                let lastP = shell.points[shell.points.length - 1];
+                ctx.beginPath();
+                ctx.arc(lastP.x, lastP.y, 4, 0, Math.PI*2);
+                ctx.fillStyle = '#ef4444';
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(lastP.x, lastP.y, 8, 0, Math.PI*2);
+                ctx.strokeStyle = '#fca5a5';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            } else if (!shell.finished) {
+                // 飞行中的弹头
+                ctx.beginPath();
+                ctx.arc(shell.x, shell.y, 3, 0, Math.PI*2);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+            }
+        }
+
+        // 绘制地球
+        ctx.beginPath();
+        ctx.arc(0, 0, RE, 0, Math.PI*2);
+        const radGrad = ctx.createRadialGradient(-RE*0.3, -RE*0.3, RE*0.15, 0, 0, RE);
+        radGrad.addColorStop(0, '#60a5fa');
+        radGrad.addColorStop(0.6, '#2563eb');
+        radGrad.addColorStop(1, '#1e3a8a');
+        ctx.fillStyle = radGrad;
+        ctx.fill();
+        
+        // 限制地图区
+        ctx.save();
+        ctx.clip(); 
+
+        const earthRotation = Date.now() / 4000; 
+        ctx.rotate(earthRotation);
+
+        ctx.strokeStyle = 'rgba(147, 197, 253, 0.25)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, RE * 0.4, RE, 0, 0, Math.PI*2); 
+        ctx.ellipse(0, 0, RE * 0.8, RE, 0, 0, Math.PI*2); 
+        ctx.moveTo(-RE, -RE*0.4); ctx.lineTo(RE, -RE*0.4); 
+        ctx.moveTo(-RE, 0); ctx.lineTo(RE, 0);             
+        ctx.moveTo(-RE, RE*0.4); ctx.lineTo(RE, RE*0.4);   
+        ctx.stroke();
+
+        ctx.restore();
+
+        // 绘制高山（发射塔）在 (0, -RE) 往上伸长
+        ctx.beginPath();
+        ctx.moveTo(-6, -RE + 2);     // 左麓
+        ctx.lineTo(6, -RE + 2);      // 右麓
+        ctx.lineTo(0, -(RE + MOUNT_H)); // 尖塔
+        ctx.fillStyle = '#94a3b8';
+        ctx.fill();
+        ctx.strokeStyle = '#475569';
+        ctx.stroke();
+
+        // 大气光晕
+        ctx.beginPath();
+        ctx.arc(0, 0, RE + 5, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    function animate(timestamp) {
+        if (!state.running) return;
+
+        const frameScale = PhysicsLab.frameScale(timestamp, lastFrameTime);
+        lastFrameTime = timestamp;
+
+        const subSteps = 10; 
+        const dt = (0.05 * state.simSpeed * frameScale) / subSteps;
+
+        let allFinished = true;
+
+        for (let shell of shells) {
+            if (shell.finished) continue;
+            allFinished = false;
+
+            for (let i = 0; i < subSteps; i++) {
+                const r2 = shell.x * shell.x + shell.y * shell.y;
+                const r = Math.sqrt(r2);
+
+                if (r <= RE) {
+                    shell.crashed = true;
+                    shell.finished = true;
+                    break;
+                }
+
+                const ax = - MU * shell.x / (r2 * r);
+                const ay = - MU * shell.y / (r2 * r);
+
+                shell.vx += ax * dt;
+                shell.vy += ay * dt;
+                shell.x += shell.vx * dt;
+                shell.y += shell.vy * dt;
+            }
+
+            if (!shell.crashed) {
+                // 每隔一点距离或者每次都记录点用于画线
+                shell.points.push({x: shell.x, y: shell.y});
+
+                // 计算角位移，判断是否绕场
+                let currentAngle = Math.atan2(shell.y, shell.x);
+                let dAngle = currentAngle - shell.lastAngle;
+                // 处理 -PI 到 PI 的边界突变
+                if (dAngle > Math.PI) dAngle -= 2 * Math.PI;
+                if (dAngle < -Math.PI) dAngle += 2 * Math.PI;
+                
+                shell.angleSum += dAngle;
+                shell.lastAngle = currentAngle;
+
+                // 如果总绕角超过一圈 2PI
+                if (Math.abs(shell.angleSum) >= Math.PI * 2) {
+                    shell.survivedRounds++;
+                    shell.angleSum = 0; // 重新计圈
+                    // 如果完成了两圈，证明它稳定可以存活，强制冻结避免无限占据性能
+                    if (shell.survivedRounds > 1) {
+                        shell.finished = true;
+                    }
+                }
+                
+                // 强制长度上限
+                if (shell.points.length > 5000) {
+                    shell.finished = true;
+                }
+            }
+        }
+
+        updateStatus();
+        drawFrame();
+
+        if (state.running) {
+            animationId = requestAnimationFrame(animate);
+        }
+    }
+
+    // 初始化运行
+    setTimeout(() => {
+        resize();
+        updateStatus();
+    }, 100);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,431 @@
+---
+// 实验室沙盒分类数据配置区
+const categories = [
+    {
+        id: "mechanics",
+        name: "力学",
+        color: "#f59e0b", // 琥珀色
+        animations: [
+            {
+                title: "速度叠加与摆线分析（车轮）",
+                desc: "直观拆解轮子滚动时的平动与转动速度矢量叠加，探究长幅与短幅摆线成因。",
+                image: "/covers/lunzi.png",
+                link: "/轮子v1.html",
+            },
+            {
+                title: "竖直平面圆轨道运动模型",
+                desc: "动态演示不同初速下，小球在竖直轨道的完整圆周、脱轨以及摆动现象。",
+                image: "covers/yuanzhou.png",
+                link: "/圆周运动v1.html",
+            },
+            {
+                title: "小船渡河与速度合成",
+                desc: "自定义水流速度与静水船速，寻找划船过河的最短时间与最短位移解。",
+                image: "covers/xiaochuan.png",
+                link: "/小船渡河v1.html",
+            },
+            {
+                title: "平抛独立性与等时对比",
+                desc: "双球同源坠落，由水平动态连线验证垂直方向上的运动彼此等效、独立且等时。",
+                image: "/covers/pingpao.png",
+                link: "/平抛对比v1.html",
+            },
+            {
+                title: "人造卫星变轨与演化",
+                desc: "以万有引力引擎为核心，通过火箭点火瞬间加速体验圆轨道、椭圆与双曲线的变换。",
+                image: "/covers/weixing.png",
+                link: "/卫星变轨v1.html",
+            },
+            {
+                title: "第一宇宙速度 (牛顿大炮)",
+                desc: "在地球极点高山极速开炮，用不同初速度推演从抛物线坠落到贴地环绕入轨的质变。",
+                image: "/covers/niudun.jpg",
+                link: "/第一宇宙速度v1.html",
+            },
+        ],
+    },
+    {
+        id: "electromagnetism",
+        name: "电磁学",
+        color: "#8b5cf6", // 紫色
+        animations: [
+            {
+                title: "带电粒子复合场运动（配速法）",
+                desc: "正交电磁场与重力场下，带电粒子轨迹的“配速法”与等效轮子模型动态演示。",
+                image: "/covers/peisu.png",
+                link: "/配速v1.html",
+            },
+        ],
+    },
+    {
+        id: "optics",
+        name: "光学",
+        color: "#0ea5e9", // 天蓝色
+        animations: [
+            {
+                title: "多维波的叠加与演化（波的干涉）",
+                desc: "自由调整双源独立起振时间与方向，全场景解构波的相干原理。",
+                image: "/covers/wave.png",
+                link: "/波的干涉v1.html",
+            },
+        ],
+    },
+    {
+        id: "thermodynamics",
+        name: "热学",
+        color: "#ef4444", // 红色
+        animations: [], // 暂无内容
+    },
+    {
+        id: "modern-physics",
+        name: "近代物理",
+        color: "#10b981", // 翠绿色
+        animations: [], // 暂无内容
+    },
+];
+---
+
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#0f172a" />
+        <meta
+            name="description"
+            content="通过可交互的 Canvas 仿真实验探索力学、电磁学和波动等物理现象。"
+        />
+        <title>物理互动演示实验室 (Physics Lab)</title>
+        <style is:global>
+            /* 页面整体暗黑风格 */
+            :root {
+                background-color: #0f172a;
+                color: #f8fafc;
+                font-family: "Segoe UI", system-ui, sans-serif;
+                color-scheme: dark;
+            }
+            body {
+                margin: 0;
+                padding: 40px 20px;
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+
+            .header {
+                text-align: center;
+                margin-bottom: 40px;
+                margin-top: 20px;
+            }
+            .header h1 {
+                font-size: 2.8rem;
+                color: #38bdf8;
+                margin-bottom: 15px;
+                letter-spacing: 2px;
+            }
+            .header p {
+                color: #94a3b8;
+                font-size: 1.1rem;
+                margin-bottom: 0;
+            }
+
+            /* 横向分类栏 */
+            .filter-tabs {
+                display: flex;
+                justify-content: center;
+                gap: 16px;
+                margin-bottom: 50px;
+                flex-wrap: wrap;
+            }
+
+            .filter-btn {
+                all: unset; /* 完全重置按钮默认样式，防止浏览器内置样式覆盖 */
+                background: rgba(30, 41, 59, 0.5);
+                color: #94a3b8;
+                border: 1px solid #334155;
+                padding: 8px 20px 8px 14px;
+                border-radius: 8px; /* 轻微圆角，类似之前的分类徽章 */
+                cursor: pointer;
+                font-size: 1.05rem;
+                font-family: inherit;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-sizing: border-box;
+            }
+
+            .filter-btn:hover {
+                background: rgba(30, 41, 59, 0.9);
+                color: #f8fafc;
+            }
+
+            .filter-btn:focus-visible,
+            .card:focus-visible {
+                outline: 3px solid #38bdf8;
+                outline-offset: 4px;
+            }
+
+            .tab-indicator {
+                width: 6px;
+                height: 20px;
+                border-radius: 4px;
+                background-color: #475569;
+                transition: all 0.3s ease;
+            }
+
+            /* 激活状态：采用各分类的专有颜色(--tab-color) */
+            .filter-btn.active {
+                background: rgba(30, 41, 59, 1);
+                color: #f8fafc;
+                border-color: var(--tab-color);
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+                font-weight: 600;
+            }
+
+            .filter-btn.active .tab-indicator {
+                background-color: var(--tab-color);
+                box-shadow: 0 0 10px var(--tab-color);
+            }
+
+            /* 九宫格网格布局 */
+            .grid-gallery {
+                display: grid;
+                grid-template-columns: repeat(
+                    auto-fill,
+                    minmax(min(100%, 320px), 1fr)
+                );
+                gap: 30px;
+                min-height: 300px; /* 留出空间给空状态 */
+                align-items: start;
+            }
+
+            /* 卡片样式与悬浮特效 */
+            .card {
+                background: #1e293b;
+                border: 1px solid #334155;
+                border-radius: 12px;
+                overflow: hidden;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                text-decoration: none;
+                display: flex;
+                flex-direction: column;
+                position: relative;
+            }
+
+            .card:hover {
+                transform: translateY(-8px);
+                box-shadow:
+                    0 20px 40px rgba(0, 0, 0, 0.4),
+                    0 0 15px rgba(56, 189, 248, 0.1);
+            }
+
+            .card img {
+                width: 100%;
+                height: 200px;
+                object-fit: cover;
+                border-bottom: 1px solid #334155;
+                background-color: #000;
+            }
+
+            .card-content {
+                padding: 25px;
+                flex-grow: 1;
+            }
+            .card-content h3 {
+                margin: 0 0 12px 0;
+                font-size: 1.3rem;
+                color: #f8fafc;
+            }
+            .card-content p {
+                margin: 0;
+                color: #94a3b8;
+                font-size: 0.95rem;
+                line-height: 1.6;
+            }
+
+            /* 分类标签提示悬浮在卡片右上角 */
+            .card-tag {
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                padding: 4px 10px;
+                border-radius: 6px;
+                font-size: 0.8rem;
+                color: #fff;
+                backdrop-filter: blur(4px);
+                font-weight: bold;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            }
+
+            /* 空状态占位提示 */
+            .empty-state {
+                background: rgba(30, 41, 59, 0.5);
+                border: 1px dashed #475569;
+                border-radius: 12px;
+                padding: 40px;
+                text-align: center;
+                color: #64748b;
+                font-size: 1.1rem;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                grid-column: 1 / -1; /* 占满整行 */
+            }
+            .empty-state span.icon {
+                font-size: 2rem;
+                opacity: 0.6;
+            }
+
+            @media (max-width: 640px) {
+                body {
+                    padding: 24px 16px;
+                }
+                .header {
+                    margin-bottom: 28px;
+                }
+                .header h1 {
+                    font-size: clamp(2rem, 12vw, 2.8rem);
+                }
+                .filter-tabs {
+                    gap: 10px;
+                    margin-bottom: 30px;
+                }
+                .filter-btn {
+                    font-size: 0.95rem;
+                    padding: 8px 14px 8px 10px;
+                }
+                .grid-gallery {
+                    gap: 20px;
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                *,
+                *::before,
+                *::after {
+                    transition-duration: 0.01ms !important;
+                }
+                .card:hover {
+                    transform: none;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>PHYSICS LAB</h1>
+            <p>探索物理世界 · 点击卡片进入沉浸式交互沙盒</p>
+        </div>
+
+        <!-- 横向分类栏 -->
+        <nav class="filter-tabs" id="filter-tabs" aria-label="按物理领域筛选实验">
+            <button
+                class="filter-btn active"
+                data-filter="all"
+                aria-pressed="true"
+                aria-controls="gallery"
+                style="--tab-color: #38bdf8;"
+            >
+                <div class="tab-indicator"></div>
+                <span>全部</span>
+            </button>
+            {
+                categories.map((category) => (
+                    <button
+                        class="filter-btn"
+                        data-filter={category.id}
+                        aria-pressed="false"
+                        aria-controls="gallery"
+                        style={`--tab-color: ${category.color};`}
+                    >
+                        <div class="tab-indicator" />
+                        <span>{category.name}</span>
+                    </button>
+                ))
+            }
+        </nav>
+
+        <main class="grid-gallery" id="gallery">
+            <!-- 遍历所有分类中的所有动画渲染在一维列表里 -->
+            {
+                categories.map((category) =>
+                    category.animations.map((anim) => (
+                        <a
+                            href={anim.link}
+                            class="card anim-card"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-category={category.id}
+                            style={`border-top: 3px solid ${category.color};`}
+                        >
+                            <img
+                                src={anim.image}
+                                alt={anim.title}
+                                loading="lazy"
+                                decoding="async"
+                                width="640"
+                                height="400"
+                                onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100%\' height=\'100%\'><rect width=\'100%\' height=\'100%\' fill=\'%23334155\'/><text x=\'50%\' y=\'50%\' font-family=\'sans-serif\' font-size=\'16\' fill=\'%2394a3b8\' text-anchor=\'middle\' dy=\'.3em\'>暂无封面图</text></svg>'"
+                            />
+                            <div class="card-content">
+                                <h3>{anim.title}</h3>
+                                <p>{anim.desc}</p>
+                            </div>
+                        </a>
+                    )),
+                )
+            }
+
+            <!-- 空状态预埋 -->
+            <div class="empty-state" id="empty-state" style="display: none;">
+                <span class="icon">🚧</span>
+                <span>该领域的高级仿真实验正在研发中，敬请期待...</span>
+            </div>
+        </main>
+
+        <!-- 过滤器逻辑 -->
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                const filterBtns = document.querySelectorAll(".filter-btn");
+                const cards = document.querySelectorAll(".anim-card");
+                const emptyState = document.getElementById("empty-state");
+
+                filterBtns.forEach((btn) => {
+                    btn.addEventListener("click", () => {
+                        // 更新按钮激活状态
+                        filterBtns.forEach((b) => {
+                            b.classList.remove("active");
+                            b.setAttribute("aria-pressed", "false");
+                        });
+                        btn.classList.add("active");
+                        btn.setAttribute("aria-pressed", "true");
+
+                        const filter = btn.getAttribute("data-filter");
+                        let visibleCount = 0;
+
+                        // 过滤卡片
+                        cards.forEach((card) => {
+                            if (
+                                filter === "all" ||
+                                card.getAttribute("data-category") === filter
+                            ) {
+                                card.style.display = "flex";
+                                visibleCount++;
+                            } else {
+                                card.style.display = "none";
+                            }
+                        });
+
+                        // 处理空状态：如果没有可见卡片，显示提示框
+                        if (visibleCount === 0) {
+                            emptyState.style.display = "flex";
+                        } else {
+                            emptyState.style.display = "none";
+                        }
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>

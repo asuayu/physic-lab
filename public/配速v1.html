@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>统一场：轮子滚动与配速法可视化</title>
+    <style>
+        :root {
+            /* 现代深色主题配色 */
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-color: #f8fafc;
+            --accent-color: #38bdf8;
+            --text-muted: #94a3b8;
+            --border: #334155;
+
+            --drift-color: #4ade80; 
+            --rot-color: #ef4444;   
+            --total-color: #facc15; 
+            --wheel-color: rgba(56, 189, 248, 0.2);
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .controls {
+            width: 290px;
+            background-color: var(--panel-bg);
+            padding: 20px;
+            box-shadow: 4px 0 25px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 10;
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+        }
+
+        .controls::-webkit-scrollbar { width: 6px; }
+        .controls::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+
+        h2 { 
+            margin-top: 0; 
+            font-size: 1.2rem; 
+            border-bottom: 2px solid var(--accent-color); 
+            padding-bottom: 10px; 
+            color: white;
+        }
+        
+        .control-group { margin-bottom: 5px; }
+        label { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-muted); }
+        
+        select, button, input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            background: #334155;
+            border: 1px solid #475569;
+            color: var(--text-color);
+            border-radius: 4px;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+
+        button { background-color: var(--accent-color); border: none; font-weight: bold; margin-top: 5px; transition: 0.2s;}
+        button:hover { filter: brightness(1.2); }
+        button.reset { background-color: #dc3545; }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(15, 23, 42, 0.4);
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+        }
+        .checkbox-group input { width: auto; cursor: pointer; transform: scale(1.2); }
+
+        .legend { font-size: 0.85rem; background: rgba(15, 23, 42, 0.5); padding: 10px; border-radius: 4px; margin-top: auto; border: 1px solid var(--border); }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+
+        .canvas-container {
+            flex-grow: 1;
+            position: relative;
+            background-image: radial-gradient(#444 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        canvas { display: block; width: 100%; height: 100%; }
+
+        .status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 15px;
+            border-radius: 8px;
+            pointer-events: none;
+            font-family: monospace;
+            font-size: 14px;
+            border-left: 4px solid var(--accent-color);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            line-height: 1.5;
+        }
+        
+        .physics-env {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(30, 41, 59, 0.9);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            text-align: right;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+        .highlight { color: #facc15; font-weight: bold; }
+
+        .btn-home {
+            position: absolute; 
+            top: 15px; 
+            right: 25px; 
+            z-index: 9999; 
+            padding: 6px 12px; 
+            background: rgba(30, 41, 59, 0.9); 
+            border: 1px solid var(--border); 
+            color: var(--text-muted); 
+            text-decoration: none; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            font-size: 0.85rem;
+            transition: all 0.2s ease-in-out;
+        }
+        .btn-home:hover {
+            color: var(--accent-color);
+            border-color: var(--accent-color);
+            background: rgba(56, 189, 248, 0.1);
+        }
+    </style>
+    <link rel="stylesheet" href="/lab-common.css">
+    <script src="/lab-runtime.js"></script>
+</head>
+<body>
+<a href="/" class="btn-home"> 🏠 返回展厅 </a>
+<div class="controls">
+    <h2>运动学与动力学可视化</h2>
+    
+    <div class="control-group">
+        <label>预设物理场景：</label>
+        <select id="scenarioSelect">
+            <option value="custom">-- 自由自定义 --</option>
+            <option value="eq_0">v0 = 0 (自由释放：普通摆线)</option>
+            <option value="bt_0_v1">0 < v0 < v1 (向下波动：短幅余摆线)</option>
+            <option value="eq_v1">v0 = v1 (完美配速：匀速直线，即轮子不转纯平动)</option>
+            <option value="bt_v1_2v1" selected>v1 < v0 < 2v1 (向上波动：短幅余摆线) [新增]</option>
+            <option value="eq_2v1">v0 = 2v1 (洛伦兹力主导：倒立普通摆线)</option>
+            <option value="gt_2v1">v0 > 2v1 (强洛伦兹力：打圈长幅余摆线)</option>
+            <option value="lt_0">v0 < 0 (逆向发射：打大圈)</option>
+            <option value="angled">斜向抛射 (v0=1.5v1, 向上45°) [新增]</option>
+        </select>
+    </div>
+
+    <div class="control-group">
+        <label><span>初速度大小 (v0):</span> <span id="val_v0_mag">1.5</span> v1</label>
+        <input type="range" id="input_v0_mag" min="-1.5" max="3" step="0.1" value="1.5">
+    </div>
+
+    <div class="control-group">
+        <label><span>初速度方向 (角度):</span> <span id="val_v0_ang">0</span>°</label>
+        <input type="range" id="input_v0_ang" min="-180" max="180" step="5" value="0">
+        <div style="font-size:0.75rem; color:#888; text-align:right; margin-top:-5px;">(0°向右, 负数向上, 正数向下)</div>
+    </div>
+
+    <label class="checkbox-group">
+        <input type="checkbox" id="showWheel" checked>
+        <strong>显示等效“虚拟轮子”</strong>
+    </label>
+
+    <div class="control-group">
+        <button id="btnRun">重新发射 (Restart)</button>
+        <button id="btnPause" class="reset">暂停 / 继续</button>
+    </div>
+
+    <div class="legend">
+        <strong>速度矢量图例：</strong>
+        <div class="legend-item"><div class="dot" style="background:var(--drift-color)"></div> 漂移速度 v1 (即轮子平动速度)</div>
+        <div class="legend-item"><div class="dot" style="background:var(--rot-color)"></div> 旋转线速度 (相对轮心的速度)</div>
+        <div class="legend-item"><div class="dot" style="background:var(--total-color)"></div> 粒子实际合速度 v</div>
+    </div>
+</div>
+
+<div class="canvas-container">
+    <div class="status" id="statusBox">加载中...</div>
+    <div class="physics-env">
+        <strong>宏观环境</strong><br>
+        粒子：正电荷 (+q)<br>
+        磁场 (B)：垂直纸面向里 ⊗<br>
+        重力 (g)：竖直向下 ↓<br>
+        <em>漂移速度 v1 = mg/qB</em>
+    </div>
+    <canvas id="simCanvas" role="img" tabindex="0" aria-label="带电粒子复合场运动与配速法等效轮子仿真"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 物理基础参数
+    const PHYSICS = {
+        v1: 120, // 漂移速度 v1 = mg/qB (向右，像素/秒)
+        T: 3.0,  // 回旋周期 (秒)
+    };
+    
+    let state = {
+        t: 0,
+        running: true,
+        points: [], 
+        v0_mag_ratio: 1.5, // 初速度倍率
+        angle_deg: 0,      // 初速度角度 (度)
+        rot_radius: 0,     
+        rot_phase: 0,      
+        omega: (2 * Math.PI) / PHYSICS.T,
+        cameraX: 0
+    };
+
+    const ui = {
+        scenario: document.getElementById('scenarioSelect'),
+        v0_mag: document.getElementById('input_v0_mag'),
+        val_v0: document.getElementById('val_v0_mag'),
+        v0_ang: document.getElementById('input_v0_ang'),
+        val_ang: document.getElementById('val_v0_ang'),
+        showWheel: document.getElementById('showWheel'),
+        status: document.getElementById('statusBox'),
+        btnRun: document.getElementById('btnRun'),
+        btnPause: document.getElementById('btnPause')
+    };
+
+    // 预设场景 (增加角度配置)
+    const scenarios = {
+        "eq_0":      { mag: 0.0, ang: 0 },
+        "bt_0_v1":   { mag: 0.5, ang: 0 },
+        "eq_v1":     { mag: 1.0, ang: 0 },
+        "bt_v1_2v1": { mag: 1.5, ang: 0 },
+        "eq_2v1":    { mag: 2.0, ang: 0 },
+        "gt_2v1":    { mag: 2.5, ang: 0 },
+        "lt_0":      { mag: -1.0, ang: 0 },
+        "angled":    { mag: 1.5, ang: -45 }
+    };
+
+    function resize() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function initSim() {
+        state.t = 0;
+        state.points = [];
+        state.cameraX = 0;
+        state.running = true;
+
+        // 1. 初速度分解
+        const v0_mag = state.v0_mag_ratio * PHYSICS.v1;
+        const angle_rad = state.angle_deg * Math.PI / 180;
+        
+        // Canvas中y轴向下为正。为了符合习惯：负角度向上(y减小)，正角度向下(y增大)
+        const vx0 = v0_mag * Math.cos(angle_rad); 
+        const vy0 = v0_mag * Math.sin(angle_rad);      
+
+        // 2. 漂移速度 (恒定水平向右)
+        const v_drift_x = PHYSICS.v1;
+        
+        // 3. 旋转参考系中的初始速度 (v_rot = v0 - v_drift)
+        const v_rot_x0 = vx0 - v_drift_x;
+        const v_rot_y0 = vy0;
+
+        // 4. 计算等效圆周运动(轮子)参数
+        // 粒子受洛伦兹力顺时针旋转，w为正
+        state.rot_radius = Math.sqrt(v_rot_x0**2 + v_rot_y0**2) / state.omega;
+        
+        if (state.rot_radius > 0.01) {
+            // 根据初始旋转速度推算初始相位 (顺时针旋转)
+            state.rot_phase = Math.atan2(v_rot_x0, -v_rot_y0);
+        } else {
+            state.rot_phase = 0;
+            state.rot_radius = 0; // 纯平动
+        }
+
+        updateStatus();
+    }
+
+    function updateStatus() {
+        const r = parseFloat(state.v0_mag_ratio.toFixed(2));
+        const ang = parseInt(state.angle_deg);
+        let type = "";
+        
+        if (state.rot_radius < 1) {
+            type = "匀速直线运动 (洛伦兹力恰好抵消重力，轮子不转)";
+        } else if (ang !== 0) {
+            type = "斜向摆线 (虚拟轮心不在粒子正上方或下方)";
+        } else {
+            if (r === 0) type = "普通摆线 (初速为0，像轮子边缘点从顶点释放)";
+            else if (r === 2) type = "倒立普通摆线 (向上的洛伦兹力=2倍重力)";
+            else if (r > 0 && r < 1) type = "短幅余摆线 (向下波动，像滑动的轮子)";
+            else if (r > 1 && r < 2) type = "短幅余摆线 (向上波动，洛伦兹力占优)";
+            else if (r > 2 || r < 0) type = "长幅余摆线 (打圈，像原地打滑的轮子)";
+        }
+
+        ui.status.innerHTML = `
+            <div>等效轮子平移 (v1): <span class="highlight">${PHYSICS.v1.toFixed(0)}</span> px/s</div>
+            <div>粒子初始速度 (v0): <span class="highlight">${(state.v0_mag_ratio * PHYSICS.v1).toFixed(0)}</span> px/s</div>
+            <div>等效轮子半径 (R): <span class="highlight">${state.rot_radius.toFixed(0)}</span> px</div>
+            <hr style="border-color:#555; margin:10px 0;">
+            <div style="color:#00ff88">数学轨迹特征:</div>
+            <div style="font-size:13px; color:#bbb">${type}</div>
+        `;
+    }
+
+    let lastTime = 0;
+    function animate(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const dt = (Math.min(timestamp - lastTime, 50)) / 1000; // 限制最大dt防跳帧
+        lastTime = timestamp;
+
+        if (state.running) updatePhysics(dt);
+        draw();
+        requestAnimationFrame(animate);
+    }
+
+    function updatePhysics(dt) {
+        state.t += dt;
+
+        // 1. 虚拟轮心的运动 (以v1恒定平动)
+        const initial_rx = state.rot_radius * Math.cos(state.rot_phase);
+        const initial_ry = state.rot_radius * Math.sin(state.rot_phase);
+        const cx0 = -initial_rx; // 使得 t=0 时粒子位于 (0,0)
+        const cy0 = -initial_ry;
+
+        const current_cx = cx0 + PHYSICS.v1 * state.t;
+        const current_cy = cy0;
+
+        // 2. 粒子相对圆心的位置 (顺时针旋转)
+        const current_rx = state.rot_radius * Math.cos(state.rot_phase - state.omega * state.t);
+        const current_ry = state.rot_radius * Math.sin(state.rot_phase - state.omega * state.t);
+
+        const px = current_cx + current_rx;
+        const py = current_cy + current_ry;
+
+        state.points.push({x: px, y: py});
+        if (state.points.length > 1000) state.points.shift(); 
+
+        // 摄像机跟随
+        state.cameraX = current_cx - canvas.width / 3;
+        
+        state.curr = { px, py, cx: current_cx, cy: current_cy, rx: current_rx, ry: current_ry };
+    }
+
+    function draw() {
+        ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg-color');
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const centerY = canvas.height / 2; 
+        
+        ctx.save();
+        ctx.translate(-state.cameraX, centerY);
+
+        drawGrid(ctx, state.cameraX, canvas.width, canvas.height, centerY);
+
+        if (!state.curr) { ctx.restore(); return; }
+
+        const px = state.curr.px;
+        const py = state.curr.py;
+        const cx = state.curr.cx;
+        const cy = state.curr.cy;
+
+        // ====== 绘制等效虚拟轮子 ======
+        if (ui.showWheel.checked && state.rot_radius > 2) {
+            // 轮子本体
+            ctx.beginPath();
+            ctx.arc(cx, cy, state.rot_radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+            ctx.setLineDash([8, 6]);
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 轮心
+            ctx.fillStyle = '#38bdf8';
+            ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill();
+
+            // 辐条 (连接轮心和粒子)
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(px, py);
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // ====== 绘制实际轨迹 ======
+        if (state.points.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(state.points[0].x, state.points[0].y);
+            for (let i = 1; i < state.points.length; i++) {
+                ctx.lineTo(state.points[i].x, state.points[i].y);
+            }
+            ctx.strokeStyle = '#facc15'; // 黄色轨迹更显眼
+            ctx.lineWidth = 3;
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+        }
+
+        // ====== 绘制速度矢量 ======
+        const vx_rot = state.omega * state.rot_radius * Math.sin(state.rot_phase - state.omega * state.t);
+        const vy_rot = -state.omega * state.rot_radius * Math.cos(state.rot_phase - state.omega * state.t);
+
+        drawArrow(ctx, px, py, PHYSICS.v1, 0, 'var(--drift-color)', 2); // 绿: 漂移(平动)
+        drawArrow(ctx, px, py, vx_rot, vy_rot, 'var(--rot-color)', 2);  // 红: 旋转
+        drawArrow(ctx, px, py, PHYSICS.v1 + vx_rot, vy_rot, 'var(--total-color)', 3); // 白: 合速度
+
+        // ====== 粒子本体 ======
+        ctx.beginPath();
+        ctx.arc(px, py, 7, 0, Math.PI*2);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    function drawArrow(ctx, x, y, vx, vy, colorStr, width) {
+        if(Math.abs(vx) < 0.5 && Math.abs(vy) < 0.5) return; 
+
+        // 解析颜色变量
+        const tempDiv = document.createElement('div');
+        tempDiv.style.color = colorStr;
+        document.body.appendChild(tempDiv);
+        const color = getComputedStyle(tempDiv).color;
+        document.body.removeChild(tempDiv);
+
+        const scale = 0.5; 
+        const endX = x + vx * scale;
+        const endY = y + vy * scale;
+        
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(endX, endY);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.stroke();
+
+        // 箭头头部
+        const angle = Math.atan2(vy, vx);
+        const headLen = 12;
+        ctx.beginPath();
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(endX - headLen * Math.cos(angle - Math.PI / 6), endY - headLen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(endX - headLen * Math.cos(angle + Math.PI / 6), endY - headLen * Math.sin(angle + Math.PI / 6));
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+
+    function drawGrid(ctx, camX, w, h, centerY) {
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        const startX = Math.floor(camX / 60) * 60;
+        for (let x = startX; x < camX + w; x += 60) {
+            ctx.moveTo(x, -centerY);
+            ctx.lineTo(x, h - centerY);
+        }
+        for (let y = -centerY; y < h - centerY; y += 60) {
+            ctx.moveTo(camX, y);
+            ctx.lineTo(camX + w, y);
+        }
+        ctx.stroke();
+
+        // 绘制起点的水平十字线
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(camX, 0); ctx.lineTo(camX + w, 0); // X轴
+        ctx.stroke();
+    }
+
+    // 事件监听
+    function updateFromSliders() {
+        state.v0_mag_ratio = parseFloat(ui.v0_mag.value);
+        state.angle_deg = parseFloat(ui.v0_ang.value);
+        ui.val_v0.textContent = state.v0_mag_ratio.toFixed(1);
+        ui.val_ang.textContent = state.angle_deg;
+        initSim();
+    }
+
+    ui.scenario.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (val !== 'custom' && scenarios[val]) {
+            ui.v0_mag.value = scenarios[val].mag;
+            ui.v0_ang.value = scenarios[val].ang;
+            updateFromSliders();
+        }
+    });
+
+    ui.v0_mag.addEventListener('input', () => { ui.scenario.value = 'custom'; updateFromSliders(); });
+    ui.v0_ang.addEventListener('input', () => { ui.scenario.value = 'custom'; updateFromSliders(); });
+    
+    ui.btnRun.addEventListener('click', initSim);
+    ui.btnPause.addEventListener('click', () => { state.running = !state.running; });
+
+    // 启动动画
+    requestAnimationFrame(animate);
+    initSim();
+
+</script>
+</body>
+</html>

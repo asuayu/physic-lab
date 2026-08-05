@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>波的叠加与干涉 (1D/2D)</title>
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #facc15;
+            --s1: #ef4444; /* source 1 red */
+            --s2: #3b82f6; /* source 2 blue */
+            --border: #334155;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .controls {
+            width: 290px;
+            background-color: var(--panel-bg);
+            padding: 20px;
+            box-shadow: 4px 0 25px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 10;
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+        }
+
+        .controls::-webkit-scrollbar { width: 6px; }
+        .controls::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+
+        h2 { 
+            margin: 0; 
+            font-size: 1.25rem; 
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        h2::before {
+            content: '';
+            display: block;
+            width: 4px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 4px;
+        }
+        
+        .box {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--border);
+            padding: 14px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .box-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+        .control-row { display: flex; flex-direction: column; gap: 4px; }
+        
+        label { 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 0.8rem; 
+            color: var(--text-muted); 
+            font-weight: 500;
+        }
+        
+        input[type="range"] { 
+            width: 100%; 
+            cursor: pointer; 
+            accent-color: var(--accent);
+        }
+
+        .btn-group { display: flex; gap: 6px; }
+        .btn-group button { flex: 1; margin: 0; }
+        
+        button {
+            padding: 6px 10px;
+            background: #334155;
+            border: 1px solid #475569;
+            color: var(--text-main);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            font-size: 0.8rem;
+        }
+        button:hover { background: #475569; }
+        button.active { 
+            background: rgba(56, 189, 248, 0.2); 
+            color: var(--accent); 
+            border-color: var(--accent); 
+        }
+
+        button.primary { background: var(--accent); color: #0f172a; font-weight: bold; border: none; }
+        button.primary:hover { background: #0ea5e9; }
+        button.danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444;}
+        button.danger:hover { background: rgba(239, 68, 68, 0.2); }
+        
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .checkbox-label input { accent-color: var(--accent); }
+
+        .canvas-container {
+            flex-grow: 1;
+            position: relative;
+            background-color: #000;
+        }
+        canvas { 
+            display: block; 
+            width: 100%; 
+            height: 100%; 
+        }
+
+        .status {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 16px;
+            border-radius: 12px;
+            pointer-events: none;
+            font-family: monospace;
+            font-size: 13px;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            line-height: 1.6;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .status strong { color: var(--accent); font-size:1.1em;}
+
+        .btn-home {
+            position: absolute; 
+            top: 15px; 
+            right: 25px; 
+            z-index: 9999; 
+            padding: 6px 12px; 
+            background: rgba(30, 41, 59, 0.9); 
+            border: 1px solid var(--border); 
+            color: var(--text-muted); 
+            text-decoration: none; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            font-size: 0.85rem;
+            transition: all 0.2s ease-in-out;
+        }
+        .btn-home:hover {
+            color: var(--accent);
+            border-color: var(--accent);
+            background: rgba(250, 204, 21, 0.1);
+        }
+
+    </style>
+    <link rel="stylesheet" href="/lab-common.css">
+    <script src="/lab-runtime.js"></script>
+</head>
+<body>
+<a href="/" class="btn-home"> 🏠 返回展厅 </a>
+
+<div class="controls">
+    <h2>波的稳态与动态演化</h2>
+    
+    <div class="box">
+        <div class="box-title">视图模式</div>
+        <div class="btn-group">
+            <button id="btn_1d" onclick="setViewMode('1D')" class="active">1D 剖面</button>
+            <button id="btn_2d" onclick="setViewMode('2D')">2D 平面图</button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
+            <label class="checkbox-label">
+                <input type="checkbox" id="chk_sources" checked> 显示波源位置标记
+            </label>
+            <label class="checkbox-label" id="lbl_chk_components">
+                <input type="checkbox" id="chk_components" checked> 1D 独立展示原波分量 (S1/S2)
+            </label>
+        </div>
+    </div>
+
+    <div class="box">
+        <div class="box-title">全局空间参数</div>
+        <div class="control-row">
+            <label>波长 (λ): <span id="val_lambda">150</span> px</label>
+            <input type="range" id="param_lambda" min="20" max="300" value="150">
+        </div>
+        <div class="control-row">
+            <label>波源间距 (d): <span id="val_d">600</span> px</label>
+            <input type="range" id="param_d" min="0" max="1000" step="5" value="600">
+        </div>
+    </div>
+
+    <div class="box" style="border-left: 3px solid var(--s1)">
+        <div class="box-title"><span class="dot" style="background:var(--s1)"></span> 波源 S1 (左侧)</div>
+        <div class="control-row">
+            <label>初始振幅 (A1): <span id="val_a1">0.75</span></label>
+            <input type="range" id="param_a1" min="0" max="3" step="0.05" value="0.75">
+        </div>
+        <div class="control-row">
+            <label>波源延迟释放: <span id="val_t1">0.0</span> s</label>
+            <input type="range" id="param_t1" min="0" max="8" step="0.1" value="0">
+        </div>
+        <div class="control-row">
+            <label>起初振动方向:</label>
+            <div class="btn-group">
+                <button id="btn_s1_up" class="active" onclick="setDir(1, 1)">向上 (+A)</button>
+                <button id="btn_s1_down" onclick="setDir(1, -1)">向下 (-A)</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="box" style="border-left: 3px solid var(--s2)">
+        <div class="box-title"><span class="dot" style="background:var(--s2)"></span> 波源 S2 (右侧)</div>
+        <div class="control-row">
+            <label>初始振幅 (A2): <span id="val_a2">0.5</span></label>
+            <input type="range" id="param_a2" min="0" max="3" step="0.05" value="0.5">
+        </div>
+        <div class="control-row">
+            <label>波源延迟释放: <span id="val_t2">0.0</span> s</label>
+            <input type="range" id="param_t2" min="0" max="8" step="0.1" value="0">
+        </div>
+        <div class="control-row">
+            <label>起初振动方向:</label>
+            <div class="btn-group">
+                <button id="btn_s2_up" class="active" onclick="setDir(2, 1)">向上 (+A)</button>
+                <button id="btn_s2_down" onclick="setDir(2, -1)">向下 (-A)</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="box">
+        <div class="box-title">时间与播放控制</div>
+        <div class="control-row">
+            <label>播放速度: <span id="val_speed">1.0</span>x</label>
+            <input type="range" id="param_speed" min="0.1" max="2.0" step="0.1" value="1.0">
+        </div>
+        <div class="btn-group" style="margin-top: 5px;">
+            <button id="btn_pause" onclick="togglePause()">⏸ 暂停</button>
+            <button class="primary" onclick="resetSim()">▶ 重新激波</button>
+        </div>
+    </div>
+    
+</div>
+
+<div class="canvas-container" id="canvas-container">
+    <div class="status" id="statusBox">加载中...</div>
+    <canvas id="simCanvas" role="img" tabindex="0" aria-label="一维和二维双波源叠加与干涉仿真"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+
+    const ui = {
+        lambda: document.getElementById('param_lambda'),
+        val_lambda: document.getElementById('val_lambda'),
+        d: document.getElementById('param_d'),
+        val_d: document.getElementById('val_d'),
+        a1: document.getElementById('param_a1'),
+        val_a1: document.getElementById('val_a1'),
+        a2: document.getElementById('param_a2'),
+        val_a2: document.getElementById('val_a2'),
+        t1: document.getElementById('param_t1'),
+        val_t1: document.getElementById('val_t1'),
+        t2: document.getElementById('param_t2'),
+        val_t2: document.getElementById('val_t2'),
+        speed: document.getElementById('param_speed'),
+        val_speed: document.getElementById('val_speed'),
+        chk_sources: document.getElementById('chk_sources'),
+        chk_components: document.getElementById('chk_components'),
+        lbl_chk_components: document.getElementById('lbl_chk_components'),
+        statusBox: document.getElementById('statusBox'),
+        btnPause: document.getElementById('btn_pause')
+    };
+
+    let state = {
+        viewMode: '1D', // 默认一维
+        lambda: 150,
+        d: 600,
+        v: 80, // 波速放缓到 80，更适合长波长观察
+        k: 0,
+        omega: 0,
+        t: 0, // 演化时间
+        
+        amp1: 0.75,
+        delay1: 0,
+        dir1: 1, 
+
+        amp2: 0.5,
+        delay2: 0,
+        dir2: 1,
+
+        timeScale: 1.0,
+        isPaused: false,
+
+        resScale: 0.5,
+        bufferCanvas: document.createElement('canvas'),
+        bufferCtx: null,
+        imgData: null,
+        data: null
+    };
+
+    state.bufferCtx = state.bufferCanvas.getContext('2d', { alpha: false });
+
+    function updateDerived() {
+        state.k = (2 * Math.PI) / state.lambda;
+        state.omega = state.k * state.v;
+    }
+
+    function resize() {
+        const container = document.getElementById('canvas-container');
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+
+        state.bufferCanvas.width = Math.floor(canvas.width * state.resScale);
+        state.bufferCanvas.height = Math.floor(canvas.height * state.resScale);
+        state.imgData = state.bufferCtx.createImageData(state.bufferCanvas.width, state.bufferCanvas.height);
+        state.data = state.imgData.data;
+        ctx.imageSmoothingEnabled = true;
+
+        if (state.isPaused) drawCurrentView();
+    }
+    window.addEventListener('resize', resize);
+
+    ui.lambda.addEventListener('input', e => { state.lambda = parseFloat(e.target.value); ui.val_lambda.textContent = state.lambda; updateDerived(); if (state.isPaused) drawCurrentView(); });
+    ui.d.addEventListener('input', e => { state.d = parseFloat(e.target.value); ui.val_d.textContent = state.d; if (state.isPaused) drawCurrentView(); });
+    ui.a1.addEventListener('input', e => { state.amp1 = parseFloat(e.target.value); ui.val_a1.textContent = state.amp1.toFixed(1); if (state.isPaused) drawCurrentView(); });
+    ui.a2.addEventListener('input', e => { state.amp2 = parseFloat(e.target.value); ui.val_a2.textContent = state.amp2.toFixed(1); if (state.isPaused) drawCurrentView(); });
+    ui.t1.addEventListener('input', e => { state.delay1 = parseFloat(e.target.value); ui.val_t1.textContent = state.delay1.toFixed(1); if (state.isPaused) drawCurrentView(); });
+    ui.t2.addEventListener('input', e => { state.delay2 = parseFloat(e.target.value); ui.val_t2.textContent = state.delay2.toFixed(1); if (state.isPaused) drawCurrentView(); });
+    ui.speed.addEventListener('input', e => { state.timeScale = parseFloat(e.target.value); ui.val_speed.textContent = state.timeScale.toFixed(1); });
+
+    function setViewMode(mode) {
+        state.viewMode = mode;
+        document.getElementById('btn_1d').classList.remove('active');
+        document.getElementById('btn_2d').classList.remove('active');
+        document.getElementById('btn_' + mode.toLowerCase()).classList.add('active');
+        
+        if (mode === '1D') {
+            ui.lbl_chk_components.style.display = 'flex';
+        } else {
+            ui.lbl_chk_components.style.display = 'none';
+        }
+        
+        if (state.isPaused) drawCurrentView();
+    }
+
+    function setDir(source, dir) {
+        if (source === 1) {
+            state.dir1 = dir;
+            document.getElementById('btn_s1_up').classList.toggle('active', dir === 1);
+            document.getElementById('btn_s1_down').classList.toggle('active', dir === -1);
+        } else {
+            state.dir2 = dir;
+            document.getElementById('btn_s2_up').classList.toggle('active', dir === 1);
+            document.getElementById('btn_s2_down').classList.toggle('active', dir === -1);
+        }
+        if (state.isPaused) drawCurrentView();
+    }
+
+    function resetSim() {
+        state.t = 0;
+        if (state.isPaused) togglePause(); // 重新激波时自动继续播放
+    }
+
+    function togglePause() {
+        state.isPaused = !state.isPaused;
+        ui.btnPause.textContent = state.isPaused ? "▶ 继续" : "⏸ 暂停";
+        ui.btnPause.classList.toggle('danger', state.isPaused);
+        if (!state.isPaused) {
+            lastTime = performance.now();
+            requestAnimationFrame(animate);
+        }
+    }
+
+    ui.chk_sources.addEventListener('change', () => { if(state.isPaused) drawCurrentView(); });
+    ui.chk_components.addEventListener('change', () => { if(state.isPaused) drawCurrentView(); });
+
+    function updateStatus() {
+        ui.statusBox.innerHTML = `
+            <div>演化时间 (t): <strong>${state.t.toFixed(2)}</strong> s</div>
+            <div>播放速度: <strong>${state.timeScale}</strong> x</div>
+        `;
+    }
+
+    // 单独计算 S1 的在 x, 0 处的振幅分量
+    function getAmp1(x) {
+        const s1x = -state.d / 2;
+        const r1 = Math.abs(x - s1x); // 1D 距离即为 x 轴坐标差的绝对值
+        let t1 = state.t - state.delay1;
+        if (t1 > 0 && t1 * state.v >= r1) {
+            return state.amp1 * state.dir1 * Math.sin(state.omega * t1 - state.k * r1);
+        }
+        return 0;
+    }
+
+    // 单独计算 S2 的在 x, 0 处的振幅分量
+    function getAmp2(x) {
+        const s2x = state.d / 2;
+        const r2 = Math.abs(x - s2x);
+        let t2 = state.t - state.delay2;
+        if (t2 > 0 && t2 * state.v >= r2) {
+            return state.amp2 * state.dir2 * Math.sin(state.omega * t2 - state.k * r2);
+        }
+        return 0;
+    }
+
+    // 原来供给 2D 的叠加振幅函数 (含 y)
+    function getAmp(x, y) {
+        const s1x = -state.d / 2;
+        const s2x = state.d / 2;
+
+        const r1 = Math.sqrt((x - s1x)**2 + y**2);
+        const r2 = Math.sqrt((x - s2x)**2 + y**2);
+        
+        let amp1 = 0;
+        let t1 = state.t - state.delay1;
+        if (t1 > 0 && t1 * state.v >= r1) {
+            amp1 = state.amp1 * state.dir1 * Math.sin(state.omega * t1 - state.k * r1);
+        }
+        
+        let amp2 = 0;
+        let t2 = state.t - state.delay2;
+        if (t2 > 0 && t2 * state.v >= r2) {
+            amp2 = state.amp2 * state.dir2 * Math.sin(state.omega * t2 - state.k * r2);
+        }
+        
+        return amp1 + amp2;
+    }
+
+    function draw1D() {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        
+        // 坐标轴
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, cy);
+        ctx.lineTo(canvas.width, cy);
+        ctx.stroke();
+
+        const maxVisualAmp = 80;
+
+        let pathS1 = new Path2D();
+        let pathS2 = new Path2D();
+        let pathBoth = new Path2D();
+        let pathS1Comp = new Path2D();
+        let pathS2Comp = new Path2D();
+
+        let prevPx = cx - canvas.width/2;
+        let prevA1 = 0, prevA2 = 0;
+        let prevW1 = false, prevW2 = false;
+
+        const s1x = -state.d / 2;
+        const s2x = state.d / 2;
+
+        for (let x = -canvas.width/2; x <= canvas.width/2; x += 2) {
+            const r1 = Math.abs(x - s1x);
+            const r2 = Math.abs(x - s2x);
+            const w1 = (state.t - state.delay1) * state.v >= r1;
+            const w2 = (state.t - state.delay2) * state.v >= r2;
+            
+            const px = cx + x;
+            const a1 = getAmp1(x) * maxVisualAmp;
+            const a2 = getAmp2(x) * maxVisualAmp;
+            
+            if (x > -canvas.width/2) {
+                const isW1 = w1 || prevW1;
+                const isW2 = w2 || prevW2;
+                
+                if (isW1 && isW2) {
+                    pathBoth.moveTo(prevPx, cy - (prevA1 + prevA2));
+                    pathBoth.lineTo(px, cy - (a1 + a2));
+                    if (ui.chk_components.checked) {
+                        pathS1Comp.moveTo(prevPx, cy - prevA1);
+                        pathS1Comp.lineTo(px, cy - a1);
+                        pathS2Comp.moveTo(prevPx, cy - prevA2);
+                        pathS2Comp.lineTo(px, cy - a2);
+                    }
+                } else if (isW1) {
+                    pathS1.moveTo(prevPx, cy - prevA1);
+                    pathS1.lineTo(px, cy - a1);
+                } else if (isW2) {
+                    pathS2.moveTo(prevPx, cy - prevA2);
+                    pathS2.lineTo(px, cy - a2);
+                }
+            }
+            
+            prevPx = px;
+            prevA1 = a1;  prevA2 = a2;
+            prevW1 = w1;  prevW2 = w2;
+        }
+
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#ef4444'; ctx.stroke(pathS1);
+        ctx.strokeStyle = '#3b82f6'; ctx.stroke(pathS2);
+        ctx.strokeStyle = '#facc15'; ctx.stroke(pathBoth);
+
+        if (ui.chk_components.checked) {
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)'; ctx.stroke(pathS1Comp);
+            ctx.strokeStyle = 'rgba(59, 130, 246, 0.4)'; ctx.stroke(pathS2Comp);
+        }
+
+        // 波源标记与实线辅助基柱
+        if (ui.chk_sources.checked) {
+            let a1_s1x = getAmp1(s1x) * maxVisualAmp;
+            let a2_s1x = getAmp2(s1x) * maxVisualAmp;
+            
+            let y1_total = cy - (a1_s1x + a2_s1x);
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.2)'; 
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(cx + s1x, cy); ctx.lineTo(cx + s1x, y1_total); ctx.stroke();
+            
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath(); ctx.arc(cx + s1x, cy - a1_s1x, 5, 0, 2*Math.PI); ctx.fill();
+            
+            let a1_s2x = getAmp1(s2x) * maxVisualAmp;
+            let a2_s2x = getAmp2(s2x) * maxVisualAmp;
+
+            let y2_total = cy - (a1_s2x + a2_s2x);
+            ctx.strokeStyle = 'rgba(59, 130, 246, 0.2)'; 
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(cx + s2x, cy); ctx.lineTo(cx + s2x, y2_total); ctx.stroke();
+
+            ctx.fillStyle = '#3b82f6';
+            ctx.beginPath(); ctx.arc(cx + s2x, cy - a2_s2x, 5, 0, 2*Math.PI); ctx.fill();
+        }
+    }
+
+    function draw2D() {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        
+        ctx.lineJoin = 'round';
+
+        // 辅助函数：绘制波前圆圈
+        // n 为整数代表波峰，n为半整数(如0.5, 1.5)代表波谷
+        function drawWavefronts(sourceX, sourceY, colorStr, delay, dir, maxRadius) {
+            let t_eff = state.t - delay;
+            if (t_eff <= 0) return;
+            
+            // 传播的最大距离
+            const r_max = t_eff * state.v;
+            
+            // 当前波源周期数
+            const T = state.lambda / state.v;
+            const phaseShift = dir === 1 ? 0 : 0.5; // 如果起振向下(dir=-1)，则波峰波谷错位半个周期
+            
+            // 从波源中心向外画圈
+            // n 代表这是第几个周期散发出去的波 (n=0 是最外层刚散发出的)
+            // r = v * (t_eff - n * T)
+            // 即 r = r_max - n * lambda
+            
+            let n = 0;
+            while (true) {
+                // 波峰圆 (实线)
+                let r_crest = r_max - (n + phaseShift) * state.lambda;
+                if (r_crest > 0 && r_crest <= maxRadius) {
+                    ctx.beginPath();
+                    ctx.arc(sourceX, sourceY, r_crest, 0, 2*Math.PI);
+                    ctx.strokeStyle = colorStr;
+                    ctx.setLineDash([]); // 实线
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+                
+                // 波谷圆 (虚线)
+                let r_trough = r_max - (n + 0.5 + phaseShift) * state.lambda;
+                if (r_trough > 0 && r_trough <= maxRadius) {
+                    ctx.beginPath();
+                    ctx.arc(sourceX, sourceY, r_trough, 0, 2*Math.PI);
+                    ctx.strokeStyle = colorStr;
+                    ctx.setLineDash([5, 5]); // 虚线
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                }
+                
+                if (r_crest <= 0 && r_trough <= 0) break;
+                n++;
+            }
+        }
+
+        const s1x = cx - state.d / 2;
+        const s2x = cx + state.d / 2;
+        const maxR = Math.max(canvas.width, canvas.height); // 画满屏幕
+
+        // 绘制 S1 红色波前 和 S2 蓝色波前
+        drawWavefronts(s1x, cy, 'rgba(239, 68, 68, 0.8)', state.delay1, state.dir1, maxR);
+        drawWavefronts(s2x, cy, 'rgba(59, 130, 246, 0.8)', state.delay2, state.dir2, maxR);
+        
+        ctx.setLineDash([]); // 重置为实线
+
+        // === 计算并绘制干涉加强/减弱点 ===
+        // 纯基于空间几何路程差，这些点是稳定的几何轨迹（只要波传到了这里）
+        // 相位差 Δφ = k(r1 - r2) + ω(delay1 - delay2) + (phi0_2 - phi0_1)
+
+        const phi0_1 = state.dir1 === 1 ? 0 : Math.PI;
+        const phi0_2 = state.dir2 === 1 ? 0 : Math.PI;
+
+        const step = 8;
+        ctx.lineWidth = 1.5;
+
+        for (let y = 0; y < canvas.height; y += step) {
+            for (let x = 0; x < canvas.width; x += step) {
+                const rx_real = x - cx;
+                const ry_real = y - cy;
+                
+                const r1 = Math.sqrt((rx_real + state.d/2)**2 + ry_real**2);
+                const r2 = Math.sqrt((rx_real - state.d/2)**2 + ry_real**2);
+                
+                // 确保两列波都已经传到该点，干涉才开始形成
+                if (state.t - state.delay1 < r1/state.v || state.t - state.delay2 < r2/state.v) continue;
+
+                // 空间纯相位差
+                let deltaPhi = state.k * (r1 - r2) + state.omega * (state.delay1 - state.delay2) + (phi0_2 - phi0_1);
+                
+                // 归一化到 [-π, π]
+                deltaPhi = deltaPhi % (2 * Math.PI);
+                if (deltaPhi > Math.PI) deltaPhi -= 2 * Math.PI;
+                if (deltaPhi < -Math.PI) deltaPhi += 2 * Math.PI;
+
+                const absPhi = Math.abs(deltaPhi);
+                
+                // 容差，决定了点画出来的粗细/数量
+                const epsilon = 0.4; 
+
+                if (absPhi < epsilon) {
+                    // 加强点轨迹：红点
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 2.5, 0, 2*Math.PI);
+                    ctx.fill();
+                } else if (Math.abs(absPhi - Math.PI) < epsilon) {
+                    // 减弱点轨迹：蓝空心圈
+                    ctx.strokeStyle = '#3b82f6';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 2.5, 0, 2*Math.PI);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // 绘制图例
+        ctx.fillStyle = 'rgba(30, 41, 59, 0.8)';
+        ctx.fillRect(canvas.width - 160, canvas.height - 120, 140, 100);
+        ctx.strokeStyle = '#334155'; ctx.strokeRect(canvas.width - 160, canvas.height - 120, 140, 100);
+        
+        ctx.font = '12px sans-serif';
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillText("图 例:", canvas.width - 150, canvas.height - 100);
+        
+        ctx.strokeStyle = '#f8fafc'; ctx.beginPath(); ctx.moveTo(canvas.width - 150, canvas.height - 80); ctx.lineTo(canvas.width - 130, canvas.height - 80); ctx.stroke();
+        ctx.fillText("波峰 (实线)", canvas.width - 120, canvas.height - 76);
+        
+        ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(canvas.width - 150, canvas.height - 60); ctx.lineTo(canvas.width - 130, canvas.height - 60); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillText("波谷 (虚线)", canvas.width - 120, canvas.height - 56);
+        
+        ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(canvas.width - 140, canvas.height - 40, 3.5, 0, 2*Math.PI); ctx.fill();
+        ctx.fillStyle = '#f8fafc'; ctx.fillText("加强点", canvas.width - 120, canvas.height - 36);
+        
+        ctx.strokeStyle = '#3b82f6'; ctx.beginPath(); ctx.arc(canvas.width - 140, canvas.height - 20, 3.5, 0, 2*Math.PI); ctx.stroke();
+        ctx.fillStyle = '#f8fafc'; ctx.fillText("减弱点", canvas.width - 120, canvas.height - 16);
+
+
+        if (ui.chk_sources.checked) {
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath(); ctx.arc(s1x, cy, 6, 0, 2*Math.PI); ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth=1.5; ctx.stroke();
+
+            ctx.fillStyle = '#3b82f6';
+            ctx.beginPath(); ctx.arc(s2x, cy, 6, 0, 2*Math.PI); ctx.fill();
+            ctx.stroke();
+        }
+    }
+
+    function drawCurrentView() {
+        if (state.viewMode === '1D') draw1D();
+        else if (state.viewMode === '2D') draw2D();
+        updateStatus();
+    }
+
+    let lastTime = performance.now();
+    function animate(time) {
+        if (!state.isPaused) {
+            const dt = Math.min((time - lastTime) / 1000, 0.05);
+            state.t += dt * state.timeScale;
+            drawCurrentView();
+            requestAnimationFrame(animate);
+        }
+        lastTime = time;
+    }
+
+    resize();
+    updateDerived();
+    requestAnimationFrame(animate);
+
+</script>
+</body>
+</html>

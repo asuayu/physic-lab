@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人造卫星变轨与轨道演化 (Physics Lab)</title>
+    <style>
+        :root {
+            --bg-main: #020617;      /* 极深邃太空黑 */
+            --panel-bg: #0f172a;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            
+            --accent: #8b5cf6;       /* 核心主色调: 星云紫 */
+            --earth: #3b82f6;        /* 地球蓝 */
+            --sat: #facc15;          /* 卫星金 */
+            --v-color: #fca5a5;      /* 速度矢量浅红 */
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            background-image: radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%);
+        }
+
+        .controls {
+            width: 330px;
+            background-color: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            box-shadow: 4px 0 25px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 10;
+            border-right: 1px solid #1e293b;
+            overflow-y: auto;
+        }
+        .controls::-webkit-scrollbar { width: 6px; }
+        .controls::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+        h2 { 
+            margin: 0; 
+            font-size: 1.3rem; 
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        h2::before {
+            content: '';
+            display: block;
+            width: 5px;
+            height: 24px;
+            background: var(--accent);
+            border-radius: 4px;
+        }
+        
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        
+        label { 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 0.95rem; 
+            color: var(--text-muted); 
+            font-weight: 500;
+        }
+
+        input[type="range"] { 
+            width: 100%; 
+            cursor: pointer; 
+            accent-color: var(--accent);
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: var(--text-main);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        button:hover { background: #334155; }
+        
+        .btn-fire-up { background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #fca5a5; }
+        .btn-fire-up:hover { background: #ef4444; color: #fff; box-shadow: 0 0 20px rgba(239,68,68,0.5); }
+        .btn-fire-down { background: rgba(14, 165, 233, 0.2); border-color: #0ea5e9; color: #bae6fd; }
+        .btn-fire-down:hover { background: #0ea5e9; color: #fff; box-shadow: 0 0 20px rgba(14,165,233,0.5); }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 5px; }
+
+        .legend { 
+            font-size: 0.85rem; 
+            background: rgba(2, 6, 23, 0.6); 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-top: auto; 
+            border: 1px solid #1e293b;
+            line-height: 1.5;
+        }
+
+        .canvas-container {
+            flex-grow: 1;
+            position: relative;
+        }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        .status-box {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 16px;
+            border-radius: 12px;
+            pointer-events: none;
+            font-family: monospace;
+            font-size: 14px;
+            border: 1px solid #334155;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            line-height: 1.6;
+            color: var(--text-muted);
+            min-width: 250px;
+        }
+        .highlight { color: var(--accent); font-weight: bold;}
+        .alert { color: #ef4444; font-weight: bold; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        .btn-home {
+            position: absolute; 
+            top: 15px; 
+            left: 360px; /* 控制栏以右 */
+            z-index: 9999; 
+            padding: 6px 12px; 
+            background: rgba(30, 41, 59, 0.9); 
+            border: 1px solid #334155; 
+            color: var(--text-muted); 
+            text-decoration: none; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .btn-home:hover {
+            color: var(--accent);
+            border-color: var(--accent);
+            background: rgba(139, 92, 246, 0.1);
+        }
+    </style>
+    <link rel="stylesheet" href="/lab-common.css">
+    <script src="/lab-runtime.js"></script>
+</head>
+<body>
+<a href="/" class="btn-home"> 🏠 返回展厅 </a>
+<div class="controls">
+    <h2>人造卫星与轨道演化</h2>
+    
+    <div style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; margin-bottom:10px;">
+        模拟万有引力引擎 (Euler-Cromer)，点火瞬间改变动能以实现轨道迁移。
+    </div>
+
+    <!-- 点火控制面板 -->
+    <div class="control-group" style="margin-top: 10px;">
+        <label>火箭推进器 (瞬时改变速率)：</label>
+        <button class="btn-fire-up" onclick="fireRocket(1.15)">🔥 顺向点火加速 (+15%)</button>
+        <button class="btn-fire-down" onclick="fireRocket(0.85)">❄️ 逆向点火减速 (-15%)</button>
+    </div>
+
+    <div class="control-group" style="margin-top: 15px;">
+        <label><span>模拟步进倍频:</span> <span id="val_speed" class="highlight">1.0</span>x</label>
+        <input type="range" id="input_speed" min="0.1" max="4.0" step="0.1" value="1.0">
+    </div>
+
+    <div class="btn-group" style="margin-top: 15px;">
+        <button onclick="resetSim()">↺ 恢复初始圆轨道</button>
+        <button id="btnPause" onclick="togglePause()" style="background:#475569">⏸ 暂停宇宙</button>
+    </div>
+
+    <div class="legend">
+        <strong style="color:var(--text-main); display:block; margin-bottom:8px;">引力法则科普：</strong>
+        <div>近圆轨道: 当引力完美提供向心力</div>
+        <div>椭圆轨道: 动能大/小于所需向心要求</div>
+        <div style="margin-top:5px; color:#ef4444;">逃逸临界点: 第一/第二宇宙速度阈值跳变将使偏心率 e ≥ 1，卫星彻底飞离引力场。</div>
+    </div>
+</div>
+
+<div class="canvas-container" id="canvas-container">
+    <div class="status-box" id="statusBox">扫描轨道数据中...</div>
+    <canvas id="simCanvas" role="img" tabindex="0" aria-label="人造卫星点火变轨与轨道演化仿真"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 天体物理常量设定 (为了在现有画布内能留出最大的空间展现双曲线和椭圆长轴，全盘微缩常数)
+    const MU = 60000;       // 缩放版引力常数参数 GM (同步减小以控制原本舒服的公转周期不变)
+    const RE = 18;          // 地球像素半径 (变小)
+    
+    // 初始化参考圆轨状态 (使 a = v^2/r -> GM/r^2 = v^2/r)
+    const R0 = 100;         // 初始半径 (变小)
+    const V0 = Math.sqrt(MU / R0); // 必须是此速度才能形成完美圆
+
+    let state = {
+        x: R0, y: 0,
+        vx: 0, vy: V0,
+        
+        orbitHistory: [],   // 轨迹节点，用于渲染长尾
+        
+        paused: false,
+        crashed: false,
+        escaped: false,
+        simSpeed: 1.0,      // 倍速
+        
+        // 用于屏幕偏移(地球置中)
+        cx: 0, cy: 0
+    };
+
+    let animationId = null;
+    let lastFrameTime = 0;
+    const MAX_TRAIL = 12000; // 极大幅度拉长尾迹限制：1万2千帧足以保留巨型拉扯椭圆的全闭合轨迹
+
+    // UI 绑定
+    const ui = {
+        sliderSpeed: document.getElementById('input_speed'),
+        valSpeed: document.getElementById('val_speed'),
+        status: document.getElementById('statusBox'),
+        btnPause: document.getElementById('btnPause')
+    };
+
+    function resize() {
+        const container = document.getElementById('canvas-container');
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        state.cx = canvas.width / 2;
+        state.cy = canvas.height / 2;
+        
+        if (state.paused) drawFrame(); // 刷新强制重绘
+    }
+    window.addEventListener('resize', resize);
+
+    ui.sliderSpeed.addEventListener('input', (e) => {
+        state.simSpeed = parseFloat(e.target.value);
+        ui.valSpeed.textContent = state.simSpeed.toFixed(1);
+    });
+
+    function resetSim() {
+        if (animationId) cancelAnimationFrame(animationId);
+        state.x = R0; 
+        state.y = 0;
+        state.vx = 0; 
+        state.vy = V0;
+        state.orbitHistory = [{x: R0, y: 0}];
+        state.crashed = false;
+        state.escaped = false;
+        state.paused = false;
+        ui.btnPause.innerHTML = '⏸ 暂停宇宙';
+        ui.btnPause.style.background = '#475569';
+        lastFrameTime = 0;
+        drawFrame();
+        animationId = requestAnimationFrame(animate);
+    }
+
+    function togglePause() {
+        state.paused = !state.paused;
+        if (state.paused) {
+            ui.btnPause.innerHTML = '▶ 恢复运转';
+            ui.btnPause.style.background = 'var(--accent)';
+        } else {
+            ui.btnPause.innerHTML = '⏸ 暂停宇宙';
+            ui.btnPause.style.background = '#475569';
+            lastFrameTime = 0;
+            animationId = requestAnimationFrame(animate);
+        }
+    }
+
+    function fireRocket(multiplier) {
+        if (state.crashed || state.paused) return;
+        state.vx *= multiplier;
+        state.vy *= multiplier;
+        
+        // 取消清空轨道历史记录，让变轨前后的轨迹能无缝连接、呈现突变的折角形变
+        // state.orbitHistory = [{x: state.x, y: state.y}];
+    }
+
+    // 核心物理探针：计算轨道几何特性
+    function getOrbitStats() {
+        const r2 = state.x * state.x + state.y * state.y;
+        const r = Math.sqrt(r2);
+        const v2 = state.vx * state.vx + state.vy * state.vy;
+        const v = Math.sqrt(v2);
+
+        // 1. 比能 (Specific Energy) E = v^2/2 - μ/r
+        const energy = v2 / 2 - MU / r;
+
+        // 2. 偏心率 (Eccentricity vector) e = (v x h)/μ - r_hat
+        // 角动量 h = r_vec x v_vec 的标量大小（二维外积相当于k轴分量）
+        const h = state.x * state.vy - state.y * state.vx; 
+        // v x (h k_hat) => (vh_y, -vh_x)
+        const ex = (state.vy * h) / MU - (state.x / r);
+        const ey = (-state.vx * h) / MU - (state.y / r);
+        const ecc = Math.sqrt(ex*ex + ey*ey); // 标量偏心率
+
+        // 轨道类型判定
+        let typeInfo = "";
+        let color = "#10b981"; // 绿色
+        if (energy >= 0 || ecc >= 1) {
+            typeInfo = "💀 逃逸 (双曲线/抛物线)";
+            color = "#ef4444";
+            if(r > 2000) state.escaped = true; // 飞太远自动掐断防死算
+        } else if (ecc > 0.05) {
+            typeInfo = "🔄 椭圆轨道";
+            color = "#3b82f6";
+        } else {
+            typeInfo = "🟢 近圆轨道";
+            color = "#10b981";
+        }
+
+        return { r, v, energy, ecc, typeInfo, color };
+    }
+
+    function updateStatus() {
+        if (state.crashed) {
+            ui.status.innerHTML = `<div class="alert">💥 轨迹衰减导致卫星坠毁于地表！</div>`;
+            return;
+        }
+
+        const stats = getOrbitStats();
+
+        ui.status.innerHTML = `
+            <div style="margin-bottom:8px; font-weight:bold; font-size:1.1em; color:${stats.color}">
+                状态: ${stats.typeInfo}
+            </div>
+            <div style="margin-bottom:4px">偏心率 e: <span style="color:#fff">${stats.ecc.toFixed(4)}</span></div>
+            <div style="margin-bottom:4px">总比能 ε: <span style="color:#fff">${stats.energy.toFixed(1)}</span></div>
+            <hr style="border-color:#334155; margin:8px 0;">
+            <div style="margin-bottom:4px">轨道高/离心 r: ${stats.r.toFixed(1)} px</div>
+            <div style="margin-bottom:4px">卫星速率 |v|: ${stats.v.toFixed(1)} px/s</div>
+        `;
+    }
+
+    function drawArrow(ctx, x, y, dx, dy, color, width) {
+        if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) return;
+        const endX = x + dx;
+        const endY = y + dy;
+        
+        ctx.beginPath(); 
+        ctx.moveTo(x, y); 
+        ctx.lineTo(endX, endY);
+        ctx.strokeStyle = color; 
+        ctx.lineWidth = width; 
+        ctx.stroke();
+
+        const angle = Math.atan2(dy, dx);
+        const headLen = 8;
+        ctx.beginPath();
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(endX - headLen * Math.cos(angle - Math.PI / 7), endY - headLen * Math.sin(angle - Math.PI / 7));
+        ctx.lineTo(endX - headLen * Math.cos(angle + Math.PI / 7), endY - headLen * Math.sin(angle + Math.PI / 7));
+        ctx.fillStyle = color; 
+        ctx.fill();
+    }
+
+    function drawFrame() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 绘制星空零星碎点背景衬托气氛
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        for(let i=0; i<40; i++) {
+            // 用固定随机种子或者就简单随动，这里用极其简单的静态星空代替
+            let sx = (i * 37) % canvas.width;
+            let sy = (i * 73) % canvas.height;
+            ctx.fillRect(sx, sy, 2, 2);
+        }
+
+        ctx.save();
+        ctx.translate(state.cx, state.cy); // 坐标系移至地球核心
+
+        // === 1. 画长效尾迹 ===
+        if (state.orbitHistory.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(state.orbitHistory[0].x, state.orbitHistory[0].y);
+            for(let i=1; i<state.orbitHistory.length; i++) {
+                ctx.lineTo(state.orbitHistory[i].x, state.orbitHistory[i].y);
+            }
+            
+            // 依据轨道类型给尾迹染色
+            let ecc = getOrbitStats().ecc;
+            if (ecc >= 1) ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';      // 逃逸红
+            else if (ecc > 0.05) ctx.strokeStyle = 'rgba(139, 92, 246, 0.6)'; // 变轨紫
+            else ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';                // 原轨绿
+            
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        }
+
+        // === 2. 画原点地球 ====
+        // 地球本体
+        ctx.beginPath();
+        ctx.arc(0, 0, RE, 0, Math.PI*2);
+        // 使用固定的球形雷达径向渐变，保持左上太阳光源高光固定！(自适应缩小后的高光偏移)
+        const radGrad = ctx.createRadialGradient(-RE*0.3, -RE*0.3, RE*0.15, 0, 0, RE);
+        radGrad.addColorStop(0, '#60a5fa');
+        radGrad.addColorStop(0.6, '#2563eb');
+        radGrad.addColorStop(1, '#1e3a8a');
+        ctx.fillStyle = radGrad;
+        ctx.fill();
+        
+        // 将地图绘画区限制在地球球体遮罩内
+        ctx.save();
+        ctx.clip(); 
+
+        // 叠加自转操作：仅仅旋转内部的地理纹路层而光源不动，制造立体的自转错觉
+        const earthRotation = Date.now() / 2500; 
+        ctx.rotate(earthRotation);
+
+        // 绘制南大洋/北冰洋与经纬网作为地理参考结构线
+        ctx.strokeStyle = 'rgba(147, 197, 253, 0.25)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, RE * 0.4, RE, 0, 0, Math.PI*2); // 经线1
+        ctx.ellipse(0, 0, RE * 0.8, RE, 0, 0, Math.PI*2); // 经线2
+        ctx.moveTo(-RE, -RE*0.4); ctx.lineTo(RE, -RE*0.4); // 北回归线附近
+        ctx.moveTo(-RE, 0); ctx.lineTo(RE, 0);             // 赤道
+        ctx.moveTo(-RE, RE*0.4); ctx.lineTo(RE, RE*0.4);   // 南回归线附近
+        ctx.stroke();
+
+        // 简陋的版块化大陆块色涂抹 (勾勒世界地图氛围)
+        ctx.fillStyle = 'rgba(52, 211, 153, 0.35)'; // 植被绿
+        // 抽象亚欧非左侧板块
+        ctx.beginPath();
+        ctx.moveTo(-RE*0.8, -RE*0.5);
+        ctx.bezierCurveTo(-RE*0.2, -RE*0.8, RE*0.2, -RE*0.4, 0, RE*0.1);
+        ctx.bezierCurveTo(-RE*0.5, RE*0.6, -RE*0.9, RE*0.2, -RE*0.8, -RE*0.5);
+        ctx.fill();
+        // 抽象美洲右半板块
+        ctx.beginPath();
+        ctx.moveTo(RE*0.3, -RE*0.6);
+        ctx.bezierCurveTo(RE*0.8, -RE*0.5, RE*0.9, -RE*0.1, RE*0.6, RE*0.1);
+        ctx.bezierCurveTo(RE*0.9, RE*0.5, RE*0.5, RE*0.8, RE*0.4, RE*0.4);
+        ctx.fill();
+        ctx.restore();
+
+        // 发光大气晕影，最外层光晕亦不受旋转影响 (厚度自适应缩水)
+        ctx.beginPath();
+        ctx.arc(0, 0, RE + 5, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.15)';
+        ctx.fill();
+
+        // === 3. 画人造卫星与其速度矢量 ====
+        if (!state.crashed) {
+            ctx.beginPath();
+            ctx.arc(state.x, state.y, 4, 0, Math.PI*2);
+            ctx.fillStyle = 'var(--sat)';
+            ctx.fill();
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#facc15';
+            ctx.fill();
+            ctx.shadowBlur = 0; // 重置阴影
+
+            // 速度矢量（按极化系数短比例展示防突破屏幕）
+            let drawDx = state.vx * 1.5;
+            let drawDy = state.vy * 1.5;
+            drawArrow(ctx, state.x, state.y, drawDx, drawDy, 'var(--v-color)', 2);
+        }
+
+        ctx.restore();
+    }
+
+    function animate(timestamp) {
+        if (state.paused || state.crashed || state.escaped) return;
+
+        const frameScale = PhysicsLab.frameScale(timestamp, lastFrameTime);
+        lastFrameTime = timestamp;
+
+        // 由于轨道积分如果步长太大极易带来累计误差，所以将单帧划分为微小段多次积分 (Sub-stepping)
+        // 积分方式：Euler-Cromer 万有引力内核解算
+        const subSteps = 10; 
+        const dt = (0.05 * state.simSpeed * frameScale) / subSteps;
+
+        for (let i = 0; i < subSteps; i++) {
+            const r2 = state.x * state.x + state.y * state.y;
+            const r = Math.sqrt(r2);
+
+            // 撞击地球判定
+            if (r <= RE) {
+                state.crashed = true;
+                break;
+            }
+
+            // 万有引力加速度 (指向圆心：方向由 -x/r 确定)
+            // a = - (GM / r^2) * (x/r) = - GM * x / r^3
+            const ax = - MU * state.x / (r2 * r);
+            const ay = - MU * state.y / (r2 * r);
+
+            // Euler-Cromer update -> 先求出新梯速度，然后马上用来推新位移
+            state.vx += ax * dt;
+            state.vy += ay * dt;
+            
+            state.x += state.vx * dt;
+            state.y += state.vy * dt;
+        }
+
+        if (!state.crashed) {
+            // 防止数据溢出限制保存阵列大小
+            state.orbitHistory.push({x: state.x, y: state.y});
+            if (state.orbitHistory.length > MAX_TRAIL) {
+                state.orbitHistory.shift(); 
+            }
+        }
+
+        updateStatus();
+        drawFrame();
+
+        if (!state.paused) {
+            animationId = requestAnimationFrame(animate);
+        }
+    }
+
+    // 初始化运行
+    setTimeout(() => {
+        resize();
+        updateStatus();
+        animationId = requestAnimationFrame(animate);
+    }, 100);
+
+</script>
+</body>
+</html>
