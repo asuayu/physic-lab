@@ -40,7 +40,7 @@ jobs:
       - name: Build site
         run: npm run build
 
-      - name: Deploy to Cloudflare Pages
+      - name: Deploy to Cloudflare Workers
         if: env.CLOUDFLARE_API_TOKEN != ''
         shell: bash
         run: |
