@@ -23,6 +23,14 @@
         .section-label { display:flex; align-items:center; gap:9px; margin:0 0 12px; color:#cbd5e1; font-size:.92rem; font-weight:700; }
         .section-label::before { content:""; width:5px; height:18px; border-radius:4px; background:var(--accent); }
         .question-card img { display:block; width:100%; max-height:460px; object-fit:contain; border-radius:12px; background:#e8e4d9; }
+        .transcript { margin-top:16px; padding:clamp(16px,3vw,24px); border:1px solid #344b67; border-radius:14px; background:#0b1726; }
+        .transcript-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:13px; }
+        .transcript-head h3 { margin:0; color:#f8fafc; font-size:1rem; }
+        .source-tag { color:#93c5fd; font-size:.76rem; padding:4px 8px; border:1px solid rgba(147,197,253,.28); border-radius:999px; background:rgba(59,130,246,.08); white-space:nowrap; }
+        .question-text { margin:0; color:#d8e4f2; line-height:1.9; text-align:justify; }
+        .options { margin:16px 0 0; padding-left:1.75rem; color:#c5d3e3; line-height:1.8; }
+        .options li { padding:5px 8px; }
+        .options li::marker { color:#fdba74; font-weight:800; }
         .answer-strip { display:flex; align-items:flex-start; gap:12px; margin-top:14px; padding:12px 14px; border:1px solid #3b516a; border-radius:12px; background:#0a1625; color:#cbd5e1; line-height:1.65; }
         .answer-strip b { color:#fdba74; white-space:nowrap; }
         .lab-card { overflow:hidden; }
@@ -69,7 +77,20 @@
     <section class="question-card" aria-labelledby="question-title">
         <h2 class="section-label" id="question-title">题目原图</h2>
         <img src="/exercise/hot-road-question.png" alt="2017 北大暑期学校物理题：炎热夏天远处柏油路面看起来像有水光，判断相同原理的现象" width="651" height="337">
-        <div class="answer-strip"><b>对应现象：A．海市蜃楼</b><span>两者都来自温度不均匀的空气使折射率随高度变化，光线连续折射并发生弯曲。热路面上的这一类叫“下蜃景”。</span></div>
+        <div class="transcript" aria-labelledby="transcript-title">
+            <div class="transcript-head">
+                <h3 id="transcript-title">原题文字版</h3>
+                <span class="source-tag">2017 北大暑期学校</span>
+            </div>
+            <p class="question-text">在炎热的夏天，向远处的柏油马路看去，路面特别明亮，好像用水淋过一样。其原理是在温度和压力的影响下，空气的折射率随着高度的增加而变大，从远处的光线将会被弯曲，看起来就好像是路面上有一块反射镜。请问以下四种生活现象，与此种现象产生的原理相同的是哪两种（　　）</p>
+            <ol class="options" type="A">
+                <li>海市蜃楼</li>
+                <li>沙漠神泉</li>
+                <li>白天，地表附近的气温较上层的气温高，声音在地表附近传播较上层快，于是在地面上的声源发出的声音向四周传播时是向上拐弯的</li>
+                <li>黑夜，地表附近的气温较上层的气温低，声音在地表附近传播较上层慢，于是在地面上的声源发出的声音向四周传播时是向下拐弯的</li>
+            </ol>
+        </div>
+        <div class="answer-strip"><b>参考答案：B、C</b><span>热路面与沙漠中的下蜃景，都是下层介质传播速度较快、光线向上弯曲；白天地表附近的声速分布也会使声线向上弯曲。</span></div>
     </section>
 
     <section class="lab-card" aria-labelledby="lab-title">
