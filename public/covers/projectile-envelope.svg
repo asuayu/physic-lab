@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+ <defs><linearGradient id="b" x2="0" y2="1"><stop stop-color="#10243b"/><stop offset="1" stop-color="#07111f"/></linearGradient><filter id="g"><feGaussianBlur stdDeviation="4"/></filter></defs>
+ <rect width="640" height="400" fill="url(#b)"/><g stroke="#26374d" opacity=".6"><path d="M60 40v310M140 40v310M220 40v310M300 40v310M380 40v310M460 40v310M540 40v310"/><path d="M40 80h560M40 140h560M40 200h560M40 260h560M40 320h560"/></g>
+ <g fill="none" stroke="#79a7ca" opacity=".35" stroke-width="2"><path d="M60 320Q250 250 440 320"/><path d="M60 320Q250 150 440 320"/><path d="M60 320Q250 70 440 320"/><path d="M60 320Q185 70 310 320"/><path d="M60 320Q125 150 190 320"/></g>
+ <path d="M60 105Q330 105 570 320" fill="none" stroke="#ffc857" stroke-width="7" filter="url(#g)" opacity=".45"/><path d="M60 105Q330 105 570 320" fill="none" stroke="#ffc857" stroke-width="4"/>
+ <path d="M60 320Q185 70 310 320" fill="none" stroke="#39d5ff" stroke-width="5"/><circle cx="110" cy="238" r="8" fill="#55e6a5" stroke="white" stroke-width="2"/>
+ <text x="60" y="55" fill="#edf6ff" font-family="Segoe UI, sans-serif" font-size="27" font-weight="700">抛体轨迹族与包络线</text><text x="60" y="88" fill="#91a4bb" font-family="Segoe UI, sans-serif" font-size="16">固定速度 · 连续改变发射角</text>
+</svg>
