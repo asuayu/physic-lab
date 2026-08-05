@@ -23,18 +23,21 @@ const categories = [
                 desc: "自定义水流速度与静水船速，寻找划船过河的最短时间与最短位移解。",
                 image: "covers/xiaochuan.png",
                 link: "/小船渡河v1.html",
+                hidden: true,
             },
             {
                 title: "平抛独立性与等时对比",
                 desc: "双球同源坠落，由水平动态连线验证垂直方向上的运动彼此等效、独立且等时。",
                 image: "/covers/pingpao.png",
                 link: "/平抛对比v1.html",
+                hidden: true,
             },
             {
                 title: "人造卫星变轨与演化",
                 desc: "以万有引力引擎为核心，通过火箭点火瞬间加速体验圆轨道、椭圆与双曲线的变换。",
                 image: "/covers/weixing.png",
                 link: "/卫星变轨v1.html",
+                hidden: true,
             },
             {
                 title: "第一宇宙速度 (牛顿大炮)",
@@ -369,7 +372,7 @@ const categories = [
             <!-- 遍历所有分类中的所有动画渲染在一维列表里 -->
             {
                 categories.map((category) =>
-                    category.animations.map((anim) => (
+                    category.animations.filter((anim) => !anim.hidden).map((anim) => (
                         <a
                             href={anim.link}
                             class="card anim-card"
