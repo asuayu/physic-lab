@@ -25,13 +25,13 @@ canvas:focus-visible {
 }
 
 @media (max-width: 900px) {
-    body {
+    body:not(.document-lab) {
         flex-direction: column;
         height: 100dvh;
         min-height: 100dvh;
     }
 
-    .controls {
+    body:not(.document-lab) .controls {
         width: 100% !important;
         max-height: 42dvh;
         flex: 0 0 auto;
@@ -42,13 +42,13 @@ canvas:focus-visible {
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
     }
 
-    .canvas-container {
+    body:not(.document-lab) .canvas-container {
         flex: 1 1 auto;
         min-height: 58dvh;
     }
 
-    .status,
-    .status-box {
+    body:not(.document-lab) .status,
+    body:not(.document-lab) .status-box {
         top: 12px !important;
         left: 12px !important;
         right: auto !important;
@@ -58,25 +58,25 @@ canvas:focus-visible {
         font-size: 12px !important;
     }
 
-    .physics-env {
+    body:not(.document-lab) .physics-env {
         right: 12px !important;
         bottom: 12px !important;
         max-width: calc(100% - 24px);
         font-size: 12px !important;
     }
 
-    .btn-home {
+    body:not(.document-lab) .btn-home {
         top: 10px !important;
         right: 12px !important;
     }
 }
 
 @media (max-width: 520px) {
-    .controls {
+    body:not(.document-lab) .controls {
         max-height: 46dvh;
     }
 
-    .canvas-container {
+    body:not(.document-lab) .canvas-container {
         min-height: 54dvh;
     }
 
