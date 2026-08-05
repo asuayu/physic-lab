@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07111f">
+    <meta name="description" content="热路面水光现象的光路变化与下蜃景形成互动演示">
+    <title>热路面“水光”与海市蜃楼｜练习题演示</title>
+    <link rel="stylesheet" href="/lab-common.css">
+    <style>
+        :root { color-scheme: dark; --ink:#eef6ff; --muted:#9db0c7; --panel:#101d2f; --line:#263b55; --accent:#fb923c; }
+        * { box-sizing: border-box; }
+        html { background:#07111f; }
+        body.document-lab { margin:0; min-height:100vh; color:var(--ink); font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; background:radial-gradient(circle at 50% -10%,#18324f 0,#07111f 48%); }
+        .page { width:min(1180px,calc(100% - 32px)); margin:auto; padding:24px 0 56px; }
+        .topbar { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:18px; }
+        .eyebrow { color:#7dd3fc; font-size:.78rem; letter-spacing:.18em; font-weight:800; }
+        h1 { margin:5px 0 0; font-size:clamp(1.55rem,4vw,2.35rem); }
+        .btn-home { position:static; color:#cbd5e1; text-decoration:none; border:1px solid #334b68; border-radius:999px; padding:8px 14px; white-space:nowrap; background:#0c1929; }
+        .btn-home:hover { color:#fff; border-color:#7dd3fc; }
+        .question-card,.lab-card,.explain { border:1px solid var(--line); background:rgba(16,29,47,.94); border-radius:18px; box-shadow:0 18px 50px rgba(0,0,0,.25); }
+        .question-card { padding:16px; margin-bottom:20px; }
+        .section-label { display:flex; align-items:center; gap:9px; margin:0 0 12px; color:#cbd5e1; font-size:.92rem; font-weight:700; }
+        .section-label::before { content:""; width:5px; height:18px; border-radius:4px; background:var(--accent); }
+        .question-card img { display:block; width:100%; max-height:460px; object-fit:contain; border-radius:12px; background:#e8e4d9; }
+        .answer-strip { display:flex; align-items:flex-start; gap:12px; margin-top:14px; padding:12px 14px; border:1px solid #3b516a; border-radius:12px; background:#0a1625; color:#cbd5e1; line-height:1.65; }
+        .answer-strip b { color:#fdba74; white-space:nowrap; }
+        .lab-card { overflow:hidden; }
+        .lab-head { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 20px; border-bottom:1px solid var(--line); }
+        .lab-head h2 { margin:0; font-size:1.15rem; }
+        .live { color:#86efac; font-size:.8rem; padding:4px 9px; border-radius:999px; background:rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.28); }
+        .workspace { display:grid; grid-template-columns:270px minmax(0,1fr); min-height:550px; }
+        .controls { width:auto; padding:18px; background:#0c1828; border-right:1px solid var(--line); }
+        .control { margin-bottom:20px; }
+        .control label { display:flex; justify-content:space-between; gap:12px; color:#b7c6d9; font-size:.9rem; margin-bottom:9px; }
+        .value { color:#fdba74; font-variant-numeric:tabular-nums; }
+        input[type="range"] { width:100%; accent-color:var(--accent); }
+        .mode-group { display:grid; gap:8px; }
+        button { border:1px solid #344b67; color:#b9c9dc; background:#14243a; border-radius:9px; padding:9px 10px; cursor:pointer; font:inherit; }
+        button:hover { border-color:#647d9b; color:#fff; }
+        button.active { color:#fff; background:#a64b18; border-color:#fb923c; }
+        .toggle { display:flex; align-items:center; justify-content:flex-start!important; gap:8px!important; cursor:pointer; margin:10px 0!important; }
+        .toggle input { accent-color:var(--accent); width:16px; height:16px; }
+        .key { margin-top:22px; padding:13px; border:1px solid #293e58; border-radius:11px; color:#8fa4bc; font-size:.79rem; line-height:1.65; background:#091523; }
+        .key span { display:block; }
+        .swatch { display:inline-block!important; width:20px; height:3px; vertical-align:middle; margin-right:7px; border-radius:3px; }
+        .canvas-wrap { min-width:0; position:relative; min-height:550px; background:#06101d; }
+        canvas { display:block; width:100%; height:100%; min-height:550px; }
+        .canvas-note { position:absolute; left:16px; bottom:15px; margin:0; padding:8px 11px; border-radius:8px; background:rgba(3,9,17,.78); color:#90a5bd; font-size:.78rem; pointer-events:none; }
+        .explain { display:grid; grid-template-columns:repeat(3,1fr); gap:0; margin-top:20px; overflow:hidden; }
+        .explain article { padding:20px; }
+        .explain article+article { border-left:1px solid var(--line); }
+        .explain strong { display:block; color:#f8fafc; margin-bottom:7px; }
+        .explain p { margin:0; color:var(--muted); line-height:1.7; font-size:.9rem; }
+        .num { display:inline-grid; place-items:center; width:24px; height:24px; margin-right:7px; border-radius:50%; color:#07111f; background:#7dd3fc; font-size:.78rem; }
+        @media(max-width:800px){ .workspace{grid-template-columns:1fr}.controls{border-right:0;border-bottom:1px solid var(--line)}.canvas-wrap,canvas{min-height:430px}.explain{grid-template-columns:1fr}.explain article+article{border-left:0;border-top:1px solid var(--line)} }
+        @media(max-width:520px){ .page{width:min(100% - 20px,1180px);padding-top:14px}.topbar{align-items:flex-start}.question-card{padding:10px}.answer-strip{display:block}.answer-strip b{display:block;margin-bottom:4px}.lab-head{padding:14px}.canvas-wrap,canvas{min-height:360px} }
+        @media(prefers-reduced-motion:reduce){.live{display:none}}
+    </style>
+    <script src="/lab-runtime.js"></script>
+</head>
+<body class="document-lab">
+<main class="page">
+    <header class="topbar">
+        <div><div class="eyebrow">练习题演示 · 光学</div><h1>热路面为什么像“洒过水”？</h1></div>
+        <a class="btn-home" href="/">← 返回展厅</a>
+    </header>
+
+    <section class="question-card" aria-labelledby="question-title">
+        <h2 class="section-label" id="question-title">题目原图</h2>
+        <img src="/exercise/hot-road-question.png" alt="2017 北大暑期学校物理题：炎热夏天远处柏油路面看起来像有水光，判断相同原理的现象" width="651" height="337">
+        <div class="answer-strip"><b>对应现象：A．海市蜃楼</b><span>两者都来自温度不均匀的空气使折射率随高度变化，光线连续折射并发生弯曲。热路面上的这一类叫“下蜃景”。</span></div>
+    </section>
+
+    <section class="lab-card" aria-labelledby="lab-title">
+        <div class="lab-head"><h2 id="lab-title">光路变化演示</h2><span class="live">● 动态光线</span></div>
+        <div class="workspace">
+            <aside class="controls" aria-label="演示控制">
+                <div class="control">
+                    <label for="heat"><span>路面与空气温差</span><output class="value" id="heatValue">强</output></label>
+                    <input id="heat" type="range" min="0" max="100" value="78" aria-label="路面与空气温差">
+                </div>
+                <div class="control">
+                    <label for="eye"><span>观察者视线高度</span><output class="value" id="eyeValue">1.6 m</output></label>
+                    <input id="eye" type="range" min="105" max="205" value="160" aria-label="观察者视线高度">
+                </div>
+                <div class="control">
+                    <label><span>对比环境</span></label>
+                    <div class="mode-group">
+                        <button class="active" id="hotMode" type="button">炎热路面</button>
+                        <button id="uniformMode" type="button">均匀空气</button>
+                    </div>
+                </div>
+                <div class="control">
+                    <label class="toggle"><input id="showLayers" type="checkbox" checked>显示空气分层</label>
+                    <label class="toggle"><input id="showExtension" type="checkbox" checked>显示反向延长线（虚像）</label>
+                </div>
+                <div class="key">
+                    <span><i class="swatch" style="background:#fde047"></i>实际光路</span>
+                    <span><i class="swatch" style="background:#7dd3fc"></i>观察者反向追迹</span>
+                    <span><i class="swatch" style="background:#fb923c"></i>近地面热空气：折射率较小</span>
+                </div>
+            </aside>
+            <div class="canvas-wrap" id="canvasWrap">
+                <canvas id="scene" role="img" tabindex="0" aria-label="远处天空光线进入近地面热空气后逐渐向上弯曲进入观察者眼睛，反向延长线在路面下形成天空虚像"></canvas>
+                <p class="canvas-note">拖动温差滑块，观察光线弯曲程度的变化</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="explain" aria-label="原理分解">
+        <article><strong><span class="num">1</span>温度产生分层</strong><p>路面加热下层空气。温度越高，空气越稀薄，折射率越小；离路面越高，空气较冷，折射率较大。</p></article>
+        <article><strong><span class="num">2</span>光线连续弯曲</strong><p>远处天空或景物的光斜射进入各层空气，经过许多次微小折射，光路整体向上弯曲并进入眼睛。</p></article>
+        <article><strong><span class="num">3</span>眼睛判断成虚像</strong><p>人眼习惯认为光沿直线传播，于是沿入眼方向反向追迹，在路面下方看到天空的虚像，像一片会闪动的“积水”。</p></article>
+    </section>
+</main>
+<script>
+(() => {
+    const canvas = document.getElementById('scene');
+    const wrap = document.getElementById('canvasWrap');
+    const ctx = canvas.getContext('2d');
+    const heat = document.getElementById('heat');
+    const eye = document.getElementById('eye');
+    const heatValue = document.getElementById('heatValue');
+    const eyeValue = document.getElementById('eyeValue');
+    const showLayers = document.getElementById('showLayers');
+    const showExtension = document.getElementById('showExtension');
+    const hotMode = document.getElementById('hotMode');
+    const uniformMode = document.getElementById('uniformMode');
+    let mode = 'hot', time = 0, last = performance.now(), cssW = 0, cssH = 0, dpr = 1;
+
+    function resize() {
+        const rect = wrap.getBoundingClientRect();
+        cssW = Math.max(320, rect.width); cssH = Math.max(360, rect.height);
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
+        canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function rayPoint(t, index) {
+        const ground = cssH * .80;
+        const eyeX = cssW * .83, eyeY = ground - (+eye.value / 220) * cssH * .34;
+        const startX = cssW * .08, startY = ground - cssH * (.33 + index * .055);
+        const x = startX + (eyeX - startX) * t;
+        const linear = startY + (eyeY - startY) * t;
+        const strength = mode === 'hot' ? (+heat.value / 100) : 0;
+        const bend = strength * cssH * (.28 + index * .02) * Math.sin(Math.PI * t) * Math.pow(t, .8);
+        return { x, y: linear + bend, eyeX, eyeY, ground };
+    }
+
+    function pathRay(index, color, width) {
+        ctx.beginPath();
+        for (let i=0;i<=80;i++) { const p=rayPoint(i/80,index); i ? ctx.lineTo(p.x,p.y) : ctx.moveTo(p.x,p.y); }
+        ctx.strokeStyle=color; ctx.lineWidth=width; ctx.lineCap='round'; ctx.stroke();
+    }
+
+    function label(text,x,y,color='#dceafa',align='left') {
+        ctx.font='600 13px "Microsoft YaHei",sans-serif'; ctx.textAlign=align;
+        const m=ctx.measureText(text); const px=7;
+        const left=align==='right'?x-m.width-px*2:align==='center'?x-m.width/2-px:x-px;
+        ctx.fillStyle='rgba(4,11,20,.76)'; ctx.fillRect(left,y-16,m.width+px*2,23);
+        ctx.fillStyle=color; ctx.fillText(text,x,y);
+    }
+
+    function draw() {
+        const w=cssW,h=cssH,ground=h*.80,strength=mode==='hot'?+heat.value/100:0;
+        const sky=ctx.createLinearGradient(0,0,0,ground); sky.addColorStop(0,'#083d65'); sky.addColorStop(.62,'#2e86aa'); sky.addColorStop(1,'#f2a65a');
+        ctx.fillStyle=sky; ctx.fillRect(0,0,w,ground);
+        ctx.fillStyle='#151d25'; ctx.fillRect(0,ground,w,h-ground);
+
+        // distant road, horizon and lane markings
+        ctx.fillStyle='#101922'; ctx.beginPath(); ctx.moveTo(w*.28,ground*.67);ctx.lineTo(w*.65,ground*.67);ctx.lineTo(w*.98,ground);ctx.lineTo(w*.03,ground);ctx.closePath();ctx.fill();
+        ctx.strokeStyle='rgba(248,250,252,.55)';ctx.lineWidth=2;ctx.setLineDash([12,14]);ctx.beginPath();ctx.moveTo(w*.46,ground*.68);ctx.lineTo(w*.35,ground);ctx.stroke();ctx.beginPath();ctx.moveTo(w*.52,ground*.68);ctx.lineTo(w*.65,ground);ctx.stroke();ctx.setLineDash([]);
+        ctx.fillStyle='#09121a'; for(let i=0;i<13;i++){const x=i*w/12;const th=14+(i%3)*11;ctx.beginPath();ctx.moveTo(x-20,ground*.68);ctx.lineTo(x,ground*.68-th);ctx.lineTo(x+22,ground*.68);ctx.fill();}
+
+        if(showLayers.checked && strength>0){
+            for(let i=0;i<7;i++){const y=ground-i*h*.035;ctx.fillStyle=`rgba(251,146,60,${.035+strength*.025*(7-i)})`;ctx.fillRect(0,y-h*.035,w,h*.035);ctx.strokeStyle='rgba(255,199,126,.13)';ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+            label('上层较冷：n 较大',w*.05,ground-h*.27,'#bae6fd');
+            label('近地面较热：n 较小',w*.05,ground-h*.035,'#fdba74');
+        }
+
+        // rays, moving photons and virtual extensions
+        for(let r=0;r<3;r++){
+            pathRay(r,'rgba(253,224,71,.88)',2.5);
+            const p=rayPoint((time*.00012+r*.31)%1,r);ctx.fillStyle='#fff7ae';ctx.shadowColor='#fde047';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+        }
+        const end=rayPoint(1,1), before=rayPoint(.94,1);
+        const dx=end.x-before.x,dy=end.y-before.y;
+        if(showExtension.checked && strength>.03 && dy < -0.5){
+            const scale=(ground+55-end.y)/(-dy);
+            const virtualX=end.x-dx*scale,virtualY=end.y-dy*scale;
+            ctx.strokeStyle='#7dd3fc';ctx.lineWidth=2;ctx.setLineDash([7,7]);ctx.beginPath();ctx.moveTo(end.x,end.y);ctx.lineTo(virtualX,virtualY);ctx.stroke();ctx.setLineDash([]);
+            label('反向延长线',end.x-(end.x-virtualX)*.44,end.y+(virtualY-end.y)*.44,'#7dd3fc','center');
+            ctx.save();ctx.globalAlpha=.22;ctx.fillStyle='#7dd3fc';ctx.beginPath();ctx.ellipse(w*.68,ground+32,w*.16,14,0,0,Math.PI*2);ctx.fill();ctx.restore();
+            label('天空的虚像（像“水光”）',w*.66,ground+39,'#bae6fd','center');
+        }
+
+        // observer
+        const ex=end.eyeX,ey=end.eyeY;ctx.strokeStyle='#e2e8f0';ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();ctx.arc(ex+13,ey-8,10,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(ex+13,ey+3);ctx.lineTo(ex+13,ey+52);ctx.moveTo(ex+13,ey+20);ctx.lineTo(ex-2,ey+40);ctx.moveTo(ex+13,ey+20);ctx.lineTo(ex+30,ey+39);ctx.moveTo(ex+13,ey+52);ctx.lineTo(ex,ground);ctx.moveTo(ex+13,ey+52);ctx.lineTo(ex+28,ground);ctx.stroke();
+        ctx.fillStyle='#f8fafc';ctx.beginPath();ctx.arc(ex,ey,4,0,Math.PI*2);ctx.fill();label('观察者',Math.min(w-8,ex+42),ey+3,'#f8fafc','right');
+        label(mode==='hot'?'光线逐层折射，向上弯曲':'空气均匀，光近似沿直线传播',w*.48,24,mode==='hot'?'#fde68a':'#bae6fd','center');
+    }
+
+    function updateText(){ const v=+heat.value; heatValue.textContent=v<20?'很弱':v<50?'中等':v<80?'强':'很强'; eyeValue.textContent=(+eye.value/100).toFixed(1)+' m'; }
+    function setMode(next){mode=next;hotMode.classList.toggle('active',next==='hot');uniformMode.classList.toggle('active',next==='uniform');heat.disabled=next==='uniform';}
+    [heat,eye,showLayers,showExtension].forEach(el=>el.addEventListener('input',updateText));
+    hotMode.addEventListener('click',()=>setMode('hot')); uniformMode.addEventListener('click',()=>setMode('uniform'));
+    new ResizeObserver(resize).observe(wrap); window.addEventListener('resize',resize);
+    function animate(now){ const dt=window.PhysicsLab?PhysicsLab.frameScale(now,last):1; last=now; time+=16.67*dt; draw(); requestAnimationFrame(animate); }
+    updateText(); resize(); requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
