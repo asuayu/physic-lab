@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+  <defs>
+    <radialGradient id="bg" cx="62%" cy="48%" r="75%"><stop stop-color="#12364c"/><stop offset="1" stop-color="#07111f"/></radialGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="640" height="400" fill="url(#bg)"/>
+  <g stroke="#8db0c7" opacity=".1"><path d="M0 80h640M0 160h640M0 240h640M0 320h640M80 0v400M160 0v400M240 0v400M320 0v400M400 0v400M480 0v400M560 0v400"/></g>
+  <path d="M220 50v300" stroke="#ffd166" stroke-width="4" filter="url(#glow)"/>
+  <g fill="#58e6ff" stroke="#58e6ff" opacity=".72">
+    <circle cx="220" cy="78" r="4"/><circle cx="220" cy="119" r="4"/><circle cx="220" cy="160" r="4"/><circle cx="220" cy="201" r="4"/><circle cx="220" cy="242" r="4"/><circle cx="220" cy="283" r="4"/><circle cx="220" cy="324" r="4"/>
+    <g fill="none" stroke-width="2"><circle cx="220" cy="78" r="105"/><circle cx="220" cy="119" r="105"/><circle cx="220" cy="160" r="105"/><circle cx="220" cy="201" r="105"/><circle cx="220" cy="242" r="105"/><circle cx="220" cy="283" r="105"/><circle cx="220" cy="324" r="105"/></g>
+  </g>
+  <path d="M325 42v316" stroke="#6fffc1" stroke-width="5" filter="url(#glow)"/>
+  <path d="M247 200h50" stroke="#6fffc1" stroke-width="3"/><path d="m297 200-12-8v16z" fill="#6fffc1"/>
+  <text x="42" y="58" fill="#eef7ff" font-family="Segoe UI, sans-serif" font-size="24" font-weight="700">每一点，都是新波源</text>
+  <text x="42" y="86" fill="#8da2b8" font-family="Segoe UI, sans-serif" font-size="14">次级子波的包络形成下一时刻的波前</text>
+</svg>

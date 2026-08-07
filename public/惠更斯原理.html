@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07111f">
+    <meta name="description" content="通过动态次级子波与包络面演示惠更斯原理。">
+    <title>惠更斯原理 · 动态演示</title>
+    <link rel="stylesheet" href="/lab-common.css">
+    <style>
+        :root {
+            color-scheme: dark;
+            --ink: #eef7ff;
+            --muted: #8da2b8;
+            --panel: rgba(10, 24, 39, .88);
+            --line: rgba(142, 174, 200, .16);
+            --cyan: #58e6ff;
+            --mint: #6fffc1;
+            --amber: #ffd166;
+            --violet: #c899ff;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            overflow: hidden;
+            color: var(--ink);
+            background: #07111f;
+            font-family: Inter, "Segoe UI", system-ui, sans-serif;
+        }
+        .app { display: grid; grid-template-columns: minmax(280px, 340px) 1fr; height: 100vh; }
+        .sidebar {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            padding: 26px 24px 22px;
+            overflow-y: auto;
+            background: linear-gradient(160deg, rgba(12, 30, 47, .98), rgba(7, 18, 31, .96));
+            border-right: 1px solid var(--line);
+            box-shadow: 18px 0 60px rgba(0, 0, 0, .25);
+        }
+        .eyebrow { color: var(--cyan); font-size: 11px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+        h1 { margin: 8px 0 8px; font-size: clamp(25px, 3vw, 34px); letter-spacing: -.04em; }
+        .intro { margin: 0 0 23px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+        .scene-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 22px; }
+        button {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            color: #b9c9d8;
+            background: rgba(255,255,255,.035);
+            font: inherit;
+            cursor: pointer;
+            transition: border-color .2s, background .2s, color .2s, transform .2s;
+        }
+        button:hover { border-color: rgba(88, 230, 255, .45); color: white; }
+        button:active { transform: translateY(1px); }
+        .scene-btn { min-height: 56px; padding: 7px 4px; font-size: 12px; }
+        .scene-btn span { display: block; margin-bottom: 3px; font-size: 19px; }
+        .scene-btn.active { border-color: var(--cyan); color: var(--ink); background: rgba(88,230,255,.11); box-shadow: inset 0 0 18px rgba(88,230,255,.05); }
+        .section { padding: 18px 0; border-top: 1px solid var(--line); }
+        .section-title { display: flex; justify-content: space-between; margin-bottom: 14px; color: #dceaf5; font-size: 12px; font-weight: 750; letter-spacing: .08em; }
+        .control { margin: 13px 0; }
+        .control label { display: flex; justify-content: space-between; margin-bottom: 8px; color: var(--muted); font-size: 12px; }
+        .value { color: var(--cyan); font-variant-numeric: tabular-nums; }
+        input[type="range"] { width: 100%; accent-color: var(--cyan); cursor: pointer; }
+        .transport { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; }
+        .transport button { min-height: 43px; padding: 0 14px; }
+        #playBtn { color: #06131c; border-color: var(--mint); background: var(--mint); font-weight: 800; }
+        .check-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; color: var(--muted); font-size: 12px; }
+        .switch { position: relative; width: 38px; height: 22px; }
+        .switch input { position: absolute; opacity: 0; }
+        .switch i { position: absolute; inset: 0; border-radius: 20px; background: #263b4c; transition: .2s; }
+        .switch i::after { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; border-radius: 50%; background: #9aabba; transition: .2s; }
+        .switch input:checked + i { background: rgba(88,230,255,.28); }
+        .switch input:checked + i::after { transform: translateX(16px); background: var(--cyan); }
+        .law-card { margin-top: auto; padding: 15px; border: 1px solid rgba(111,255,193,.22); border-radius: 13px; background: rgba(111,255,193,.055); }
+        .law-card strong { display: block; margin-bottom: 7px; color: var(--mint); font-size: 12px; }
+        .law-card p { margin: 0; color: #a8bdc9; font-size: 12px; line-height: 1.65; }
+        .btn-home { display: inline-flex; margin-top: 15px; color: var(--muted); font-size: 12px; text-decoration: none; }
+        .stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+        canvas { display: block; width: 100%; height: 100%; }
+        .topbar { position: absolute; z-index: 2; left: 28px; right: 28px; top: 24px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
+        .mode-readout { padding: 11px 14px; border: 1px solid var(--line); border-radius: 11px; background: rgba(7,17,31,.64); backdrop-filter: blur(12px); }
+        .mode-readout b { display: block; font-size: 13px; }
+        .mode-readout span { color: var(--muted); font-size: 11px; }
+        .time-pill { padding: 9px 13px; border: 1px solid rgba(88,230,255,.25); border-radius: 99px; color: var(--cyan); background: rgba(7,17,31,.64); font: 700 12px ui-monospace, monospace; backdrop-filter: blur(12px); }
+        .legend { position: absolute; z-index: 2; right: 27px; bottom: 27px; display: flex; gap: 16px; padding: 11px 14px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); background: rgba(7,17,31,.7); font-size: 11px; backdrop-filter: blur(10px); pointer-events: none; }
+        .legend i { display: inline-block; width: 17px; height: 2px; margin-right: 6px; vertical-align: middle; background: currentColor; }
+        .legend .old { color: var(--amber); }
+        .legend .wavelet { color: rgba(88,230,255,.8); }
+        .legend .new { color: var(--mint); }
+        .legend .next { color: var(--violet); }
+        .phase-guide { position: absolute; z-index: 2; left: 50%; bottom: 25px; width: min(520px, 58%); transform: translateX(-50%); pointer-events: none; }
+        .phase-labels { display: flex; justify-content: space-between; margin-bottom: 7px; color: #6f8295; font-size: 10px; letter-spacing: .08em; }
+        .phase-labels span.active { color: var(--ink); }
+        .phase-track { height: 3px; overflow: hidden; border-radius: 9px; background: rgba(255,255,255,.12); }
+        .phase-track i { display: block; width: 0; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--mint)); box-shadow: 0 0 13px var(--cyan); }
+        @media (max-width: 820px) {
+            body { overflow: auto; }
+            .app { grid-template-columns: 1fr; grid-template-rows: auto minmax(480px, 62vh); height: auto; min-height: 100vh; }
+            .sidebar { padding: 18px; overflow: visible; border-right: 0; border-bottom: 1px solid var(--line); }
+            .intro { margin-bottom: 14px; }
+            .section { padding: 13px 0; }
+            .law-card { margin-top: 4px; }
+            .stage { min-height: 480px; }
+            .legend { left: 16px; right: auto; bottom: 53px; flex-wrap: wrap; }
+            .phase-guide { bottom: 22px; width: calc(100% - 32px); }
+            .topbar { left: 16px; right: 16px; top: 16px; }
+        }
+    </style>
+</head>
+<body>
+<main class="app">
+    <aside class="sidebar" aria-label="演示控制面板">
+        <div class="eyebrow">Wave Lab · 04</div>
+        <h1>惠更斯原理</h1>
+        <p class="intro">波前上的每一点，都是一个新的波源。观察无数次级子波如何共同“托起”下一时刻的波前。</p>
+
+        <div class="scene-tabs" role="group" aria-label="选择演示场景">
+            <button class="scene-btn active" data-scene="plane"><span>∥</span>平面波</button>
+            <button class="scene-btn" data-scene="point"><span>◎</span>点波源</button>
+            <button class="scene-btn" data-scene="slit"><span>⌁</span>单缝</button>
+        </div>
+
+        <section class="section">
+            <div class="section-title"><span>演化控制</span><span id="phaseName">次级子波扩张</span></div>
+            <div class="transport">
+                <button id="playBtn" aria-label="暂停动画">Ⅱ&nbsp; 暂停</button>
+                <button id="stepBtn" aria-label="单步推进">+1 帧</button>
+                <button id="resetBtn" aria-label="重置动画">↺</button>
+            </div>
+            <div class="control">
+                <label for="timeline"><span>时间进度 Δt</span><span class="value" id="timelineValue">0.42 T</span></label>
+                <input id="timeline" type="range" min="0" max="1" value="0.42" step="0.001">
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title"><span>波参数</span><span>实时生效</span></div>
+            <div class="control">
+                <label for="wavelength"><span>波长 λ</span><span class="value" id="wavelengthValue">84 px</span></label>
+                <input id="wavelength" type="range" min="55" max="130" value="84" step="1">
+            </div>
+            <div class="control">
+                <label for="speed"><span>播放速度</span><span class="value" id="speedValue">1.0×</span></label>
+                <input id="speed" type="range" min="0.25" max="2" value="1" step="0.05">
+            </div>
+            <div class="control">
+                <label for="density"><span>次级波源密度</span><span class="value" id="densityValue">15</span></label>
+                <input id="density" type="range" min="7" max="27" value="15" step="2">
+            </div>
+            <div class="check-row"><span>显示传播方向</span><label class="switch"><input id="showArrows" type="checkbox" checked><i></i></label></div>
+            <div class="check-row"><span>保留历史波前</span><label class="switch"><input id="showHistory" type="checkbox" checked><i></i></label></div>
+        </section>
+
+        <div class="law-card">
+            <strong>核心判断</strong>
+            <p id="explanation">平面波前上各点同步发出等速子波；同一时刻所有子波的公切面，仍是一条平行直线。</p>
+        </div>
+        <a class="btn-home" href="/">← 返回展厅</a>
+    </aside>
+
+    <section class="stage" id="stage" aria-label="惠更斯原理动画区域">
+        <canvas id="canvas" tabindex="0" aria-label="惠更斯原理动态画布"></canvas>
+        <div class="topbar">
+            <div class="mode-readout"><b id="sceneTitle">平面波的传播</b><span id="sceneSubtitle">波前形状保持不变</span></div>
+            <div class="time-pill" id="timePill">Δt = 0.42 T</div>
+        </div>
+        <div class="legend" aria-hidden="true"><span class="old"><i></i>当前波前</span><span class="wavelet"><i></i>次级子波</span><span class="new"><i></i>一级新波前</span><span class="next"><i></i>二级新波前</span></div>
+        <div class="phase-guide" aria-hidden="true">
+            <div class="phase-labels"><span>选取波前</span><span class="active">一级子波</span><span>一级包络</span><span>二级包络</span></div>
+            <div class="phase-track"><i id="phaseFill"></i></div>
+        </div>
+    </section>
+</main>
+<script src="/lab-runtime.js"></script>
+<script>
+(() => {
+    const canvas = document.getElementById('canvas');
+    const stage = document.getElementById('stage');
+    const ctx = canvas.getContext('2d');
+    const ui = {
+        play: document.getElementById('playBtn'), timeline: document.getElementById('timeline'),
+        timelineValue: document.getElementById('timelineValue'), wavelength: document.getElementById('wavelength'),
+        wavelengthValue: document.getElementById('wavelengthValue'), speed: document.getElementById('speed'),
+        speedValue: document.getElementById('speedValue'), density: document.getElementById('density'),
+        densityValue: document.getElementById('densityValue'), arrows: document.getElementById('showArrows'),
+        history: document.getElementById('showHistory'), phaseFill: document.getElementById('phaseFill'),
+        phaseName: document.getElementById('phaseName'), timePill: document.getElementById('timePill'),
+        sceneTitle: document.getElementById('sceneTitle'), sceneSubtitle: document.getElementById('sceneSubtitle'),
+        explanation: document.getElementById('explanation')
+    };
+    const scenes = {
+        plane: ['平面波的传播', '波前形状保持不变', '平面波前上各点同步发出等速子波；同一时刻所有子波的公切面，仍是一条平行直线。'],
+        point: ['点波源的传播', '球面波前向外扩张', '圆形波前上的每一点都产生次级子波；外侧包络仍是同心圆，因此波前半径以波速均匀增大。'],
+        slit: ['单缝衍射', '开口处成为新的波源', '入射波到达狭缝后，开口内各点发出次级子波；它们的包络向阴影区弯曲，形成衍射波。']
+    };
+    const state = { scene: 'plane', phase: .42, wavelength: 84, speed: 1, density: 15, playing: true, last: performance.now() };
+    let w = 0, h = 0, dpr = 1;
+
+    function resize() {
+        const rect = stage.getBoundingClientRect();
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        w = Math.max(1, rect.width); h = Math.max(1, rect.height);
+        canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+        canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+    }
+    const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    function line(x1,y1,x2,y2,color,width=1,dash=[]) { ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash(dash); ctx.stroke(); ctx.setLineDash([]); }
+    function circle(x,y,r,color,width=1,alpha=1,start=0,end=Math.PI*2) { if(r<=0)return; ctx.save(); ctx.globalAlpha=alpha; ctx.beginPath(); ctx.arc(x,y,r,start,end); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.stroke(); ctx.restore(); }
+    function dot(x,y,color,r=3) { ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=color; ctx.fill(); }
+    function arrow(x1,y1,x2,y2) { const a=Math.atan2(y2-y1,x2-x1), s=7; line(x1,y1,x2,y2,'rgba(111,255,193,.55)',1.4); ctx.fillStyle='rgba(111,255,193,.7)'; ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2-s*Math.cos(a-.55),y2-s*Math.sin(a-.55)); ctx.lineTo(x2-s*Math.cos(a+.55),y2-s*Math.sin(a+.55)); ctx.closePath(); ctx.fill(); }
+    function backdrop() {
+        const g=ctx.createRadialGradient(w*.58,h*.48,0,w*.58,h*.48,Math.max(w,h)*.8); g.addColorStop(0,'#0d2335'); g.addColorStop(1,'#06101d'); ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+        ctx.strokeStyle='rgba(116,158,187,.065)'; ctx.lineWidth=1; const step=40; for(let x=(w%step);x<w;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()} for(let y=(h%step);y<h;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+        const glow=ctx.createLinearGradient(0,0,w,0); glow.addColorStop(0,'rgba(88,230,255,0)'); glow.addColorStop(.55,'rgba(88,230,255,.035)'); glow.addColorStop(1,'rgba(111,255,193,0)'); ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);
+    }
+    function sourceLabel(x,y,text) { ctx.font='600 11px Inter, sans-serif'; ctx.fillStyle='rgba(210,230,241,.72)'; ctx.textAlign='center'; ctx.fillText(text,x,y); }
+    function drawPlane() {
+        const x0=w*.32, pad=Math.max(82,h*.16), span=h-2*pad;
+        const p1=Math.min(state.phase*2,1), p2=Math.max(0,(state.phase-.5)*2), r1=p1*state.wavelength, r2=p2*state.wavelength, x1=x0+state.wavelength;
+        if(ui.history.checked){ for(let k=-3;k<=3;k++){ if(k===0)continue; const x=x0+k*state.wavelength; line(x,pad-35,x,h-pad+35,'rgba(124,160,184,.12)',1); } }
+        line(x0,pad-38,x0,h-pad+38,css('--amber'),2.5); sourceLabel(x0,pad-52,'t 时刻波前');
+        const count=state.density; for(let i=0;i<count;i++){ const y=pad+i*span/(count-1); dot(x0,y,css('--cyan'),2.6); circle(x0,y,r1,css('--cyan'),1,state.phase<.5?Math.min(.62,.18+p1*.55):.16); }
+        if(r1>2){ line(x0+r1,pad-38,x0+r1,h-pad+38,css('--mint'),3); sourceLabel(x0+r1,pad-52,'一级新波前'); }
+        if(p2>0){ for(let i=0;i<count;i++){ const y=pad+i*span/(count-1); dot(x1,y,css('--mint'),2.5); circle(x1,y,r2,css('--violet'),1,Math.min(.62,.2+p2*.5)); } line(x1+r2,pad-38,x1+r2,h-pad+38,css('--violet'),3); sourceLabel(x1+r2,pad-68,'二级新波前'); }
+        if(ui.arrows.checked){ for(let y=pad+span*.18;y<h-pad;y+=span*.32){ if(state.phase<.5) arrow(x0+8,y,x0+r1-8,y); else arrow(x1+8,y,x1+r2-8,y); } }
+        labelWaveSpeed(x0, h-pad+67, r1+r2);
+    }
+    function drawPoint() {
+        const cx=w*.43, cy=h*.51, base=Math.min(w,h)*.17;
+        const p1=Math.min(state.phase*2,1), p2=Math.max(0,(state.phase-.5)*2), r1=p1*state.wavelength, r2=p2*state.wavelength, firstRadius=base+state.wavelength;
+        if(ui.history.checked){ for(let k=-2;k<=2;k++){if(k===0)continue;circle(cx,cy,base+k*state.wavelength,'rgba(124,160,184,.12)',1)} }
+        circle(cx,cy,base,css('--amber'),2.5); dot(cx,cy,css('--amber'),4); sourceLabel(cx,cy+5,'S');
+        const count=state.density+4; for(let i=0;i<count;i++){ const a=i*Math.PI*2/count, x=cx+base*Math.cos(a), y=cy+base*Math.sin(a); dot(x,y,css('--cyan'),2.4); circle(x,y,r1,css('--cyan'),1,state.phase<.5?Math.min(.52,.16+p1*.45):.13); }
+        circle(cx,cy,base+r1,css('--mint'),3); sourceLabel(cx,cy-base-r1-15,'一级包络');
+        if(p2>0){ for(let i=0;i<count;i++){ const a=i*Math.PI*2/count, x=cx+firstRadius*Math.cos(a), y=cy+firstRadius*Math.sin(a); dot(x,y,css('--mint'),2.2); circle(x,y,r2,css('--violet'),1,Math.min(.5,.15+p2*.42)); } circle(cx,cy,firstRadius+r2,css('--violet'),3); sourceLabel(cx,cy-firstRadius-r2-15,'二级包络'); }
+        if(ui.arrows.checked){ for(let a=0;a<Math.PI*2;a+=Math.PI/4){ const from=state.phase<.5?base:firstRadius, rr=state.phase<.5?r1:r2; arrow(cx+(from+8)*Math.cos(a),cy+(from+8)*Math.sin(a),cx+(from+rr-8)*Math.cos(a),cy+(from+rr-8)*Math.sin(a)); } }
+        sourceLabel(cx,cy-base+18,'t 时刻波前');
+    }
+    function drawSlit() {
+        const wallX=w*.36, cy=h*.51, slit=Math.max(90,Math.min(180,h*.26)), pad=58;
+        const p1=Math.min(state.phase*2,1), p2=Math.max(0,(state.phase-.5)*2), stepRadius=state.wavelength*1.7, r1=p1*stepRadius, r2=p2*state.wavelength, firstRadius=stepRadius+slit*.32;
+        const incomingPhase=(state.phase*state.wavelength)%state.wavelength;
+        for(let x=wallX-incomingPhase;x>0;x-=state.wavelength) line(x,pad,x,cy-slit/2,'rgba(255,209,102,.38)',1.4);
+        for(let x=wallX-incomingPhase;x>0;x-=state.wavelength) line(x,cy+slit/2,x,h-pad,'rgba(255,209,102,.38)',1.4);
+        ctx.strokeStyle='rgba(157,179,198,.65)';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(wallX,0);ctx.lineTo(wallX,cy-slit/2);ctx.moveTo(wallX,cy+slit/2);ctx.lineTo(wallX,h);ctx.stroke();
+        ctx.strokeStyle='rgba(88,230,255,.22)';ctx.lineWidth=18;ctx.beginPath();ctx.moveTo(wallX,cy-slit/2);ctx.lineTo(wallX,cy+slit/2);ctx.stroke();
+        const count=Math.max(5,Math.round(state.density*.62));
+        for(let i=0;i<count;i++){const y=cy-slit/2+i*slit/(count-1);dot(wallX,y,css('--cyan'),2.8);circle(wallX,y,r1,css('--cyan'),1,state.phase<.5?Math.min(.58,.2+p1*.42):.14,-Math.PI/2,Math.PI/2)}
+        if(r1>3){ ctx.save();ctx.beginPath();ctx.rect(wallX,0,w-wallX,h);ctx.clip();circle(wallX,cy,r1+slit*.32,css('--mint'),3,.96,-Math.PI/2,Math.PI/2);ctx.restore(); }
+        if(p2>0){ const arcCount=Math.max(7,Math.round(state.density*.7)); for(let i=0;i<arcCount;i++){ const a=-1.18+i*2.36/(arcCount-1), x=wallX+firstRadius*Math.cos(a), y=cy+firstRadius*Math.sin(a); dot(x,y,css('--mint'),2.3); circle(x,y,r2,css('--violet'),1,Math.min(.5,.16+p2*.42)); } circle(wallX,cy,firstRadius+r2,css('--violet'),3,.96,-Math.PI/2,Math.PI/2); }
+        sourceLabel(wallX-62,cy-slit/2-20,'入射平面波'); sourceLabel(wallX+62,cy-slit/2-20,'衍射波前');
+        if(ui.arrows.checked){ arrow(wallX-state.wavelength*.65,cy,wallX-12,cy); arrow(wallX+15,cy,wallX+(state.phase<.5?r1:firstRadius+r2)*.82,cy); }
+    }
+    function labelWaveSpeed(x,y,r){ ctx.textAlign='left';ctx.font='12px ui-monospace, monospace';ctx.fillStyle='rgba(141,162,184,.7)';ctx.fillText('传播距离  vΔt = '+Math.round(r)+' px',x,y); }
+    function updateUi() {
+        const p=state.phase, cycles=p*2; ui.timeline.value=p; ui.timelineValue.textContent=cycles.toFixed(2)+' T'; ui.timePill.textContent='Δt = '+cycles.toFixed(2)+' T'; ui.phaseFill.style.width=(p*100)+'%';
+        const active=p<.08?0:p<.46?1:p<.58?2:3, labels=document.querySelectorAll('.phase-labels span'); labels.forEach((el,i)=>el.classList.toggle('active',i===active)); ui.phaseName.textContent=['选取当前波前','一级子波扩张','一级包络形成','二级子波继续传播'][active];
+    }
+    function draw(){ backdrop(); if(state.scene==='plane')drawPlane(); else if(state.scene==='point')drawPoint(); else drawSlit(); updateUi(); }
+    function animate(now){ const dt=Math.min((now-state.last)/1000,.05);state.last=now;if(state.playing){state.phase=(state.phase+dt*.22*state.speed)%1;draw()}requestAnimationFrame(animate); }
+    function setPlaying(on){state.playing=on;ui.play.innerHTML=on?'Ⅱ&nbsp; 暂停':'▶&nbsp; 继续';ui.play.setAttribute('aria-label',on?'暂停动画':'继续动画');}
+    document.querySelectorAll('.scene-btn').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.scene-btn').forEach(x=>x.classList.remove('active'));btn.classList.add('active');state.scene=btn.dataset.scene;const s=scenes[state.scene];ui.sceneTitle.textContent=s[0];ui.sceneSubtitle.textContent=s[1];ui.explanation.textContent=s[2];state.phase=.08;draw()}));
+    ui.play.addEventListener('click',()=>setPlaying(!state.playing));
+    document.getElementById('stepBtn').addEventListener('click',()=>{setPlaying(false);state.phase=(state.phase+.08)%1;draw()});
+    document.getElementById('resetBtn').addEventListener('click',()=>{state.phase=0;setPlaying(true);draw()});
+    ui.timeline.addEventListener('input',e=>{state.phase=+e.target.value;setPlaying(false);draw()});
+    ui.wavelength.addEventListener('input',e=>{state.wavelength=+e.target.value;ui.wavelengthValue.textContent=state.wavelength+' px';draw()});
+    ui.speed.addEventListener('input',e=>{state.speed=+e.target.value;ui.speedValue.textContent=state.speed.toFixed(1)+'×'});
+    ui.density.addEventListener('input',e=>{state.density=+e.target.value;ui.densityValue.textContent=state.density;draw()});
+    [ui.arrows,ui.history].forEach(el=>el.addEventListener('change',draw));
+    canvas.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();setPlaying(!state.playing)}if(e.key==='ArrowRight'){setPlaying(false);state.phase=(state.phase+.03)%1;draw()}});
+    window.addEventListener('resize',resize); new ResizeObserver(resize).observe(stage); resize(); requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
