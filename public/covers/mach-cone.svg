@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+  <defs><radialGradient id="b" cx="65%" cy="48%" r="80%"><stop stop-color="#15364a"/><stop offset="1" stop-color="#07101c"/></radialGradient><filter id="g"><feGaussianBlur stdDeviation="4" result="x"/><feMerge><feMergeNode in="x"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <rect width="640" height="400" fill="url(#b)"/><g stroke="#8db0c7" opacity=".09"><path d="M0 80h640M0 160h640M0 240h640M0 320h640M80 0v400M160 0v400M240 0v400M320 0v400M400 0v400M480 0v400M560 0v400"/></g>
+  <g fill="none" stroke="#5ce7ff" opacity=".55"><circle cx="105" cy="225" r="125"/><circle cx="175" cy="225" r="105"/><circle cx="245" cy="225" r="85"/><circle cx="315" cy="225" r="65"/><circle cx="385" cy="225" r="45"/></g>
+  <path d="M500 225 73 74M500 225 73 376" fill="rgba(255,96,120,.07)" stroke="#ff6078" stroke-width="4" filter="url(#g)"/>
+  <path d="m520 225-45-15 13 15-13 15z" fill="#ffb35c" stroke="white" stroke-width="1"/>
+  <path d="M500 225h-82" stroke="#75ffc7" stroke-dasharray="5 5"/><path d="M456 225a44 44 0 0 0 2-15" fill="none" stroke="#75ffc7" stroke-width="2"/>
+  <text x="39" y="52" fill="#edf7ff" font-family="Segoe UI,sans-serif" font-size="25" font-weight="700">超声速留下的几何包络</text><text x="39" y="80" fill="#8fa5b8" font-family="Segoe UI,sans-serif" font-size="14">sin μ = 1 / M</text>
+</svg>

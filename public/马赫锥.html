@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#08101b">
+    <meta name="description" content="动态演示运动声源形成马赫锥的条件、波前包络与马赫角。">
+    <title>马赫锥 · 动态演示</title>
+    <link rel="stylesheet" href="/lab-common.css">
+    <style>
+        :root { color-scheme: dark; --bg:#08101b; --panel:#0d1a29; --line:rgba(145,174,198,.16); --text:#edf7ff; --muted:#8fa5b8; --cyan:#5ce7ff; --orange:#ffb35c; --red:#ff6078; --green:#75ffc7; }
+        * { box-sizing: border-box; }
+        body { margin:0; height:100vh; overflow:hidden; color:var(--text); background:var(--bg); font-family:Inter,"Segoe UI",system-ui,sans-serif; }
+        .app { display:grid; grid-template-columns:minmax(290px,350px) 1fr; height:100%; }
+        .controls { z-index:3; display:flex; flex-direction:column; min-height:0; padding:25px 24px 21px; overflow-y:auto; background:linear-gradient(155deg,rgba(15,31,47,.99),rgba(7,17,29,.98)); border-right:1px solid var(--line); box-shadow:18px 0 55px rgba(0,0,0,.28); }
+        .eyebrow { color:var(--orange); font-size:11px; font-weight:800; letter-spacing:.18em; }
+        h1 { margin:8px 0 7px; font-size:clamp(27px,3vw,36px); letter-spacing:-.045em; }
+        .intro { margin:0 0 20px; color:var(--muted); font-size:13px; line-height:1.65; }
+        .presets { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-bottom:20px; }
+        button { min-height:42px; border:1px solid var(--line); border-radius:10px; color:#b8c8d5; background:rgba(255,255,255,.035); font:inherit; cursor:pointer; transition:.2s; }
+        button:hover { color:white; border-color:rgba(92,231,255,.5); }
+        button.active { color:#07111c; border-color:var(--orange); background:var(--orange); font-weight:800; }
+        .preset b,.preset small { display:block; }
+        .preset b { font-size:12px; }
+        .preset small { margin-top:2px; font-size:10px; opacity:.72; }
+        .section { padding:17px 0; border-top:1px solid var(--line); }
+        .section-head { display:flex; justify-content:space-between; margin-bottom:13px; font-size:11px; font-weight:800; letter-spacing:.1em; color:#dceaf4; }
+        .transport { display:grid; grid-template-columns:1fr auto; gap:8px; }
+        #playBtn { color:#07141d; border-color:var(--green); background:var(--green); font-weight:800; }
+        #resetBtn { padding:0 15px; }
+        .control { margin:13px 0; }
+        .control label { display:flex; justify-content:space-between; margin-bottom:8px; color:var(--muted); font-size:12px; }
+        .value { color:var(--orange); font-family:ui-monospace,Consolas,monospace; font-weight:700; }
+        input[type="range"] { width:100%; accent-color:var(--orange); cursor:pointer; }
+        .toggle-row { display:flex; align-items:center; justify-content:space-between; margin-top:12px; color:var(--muted); font-size:12px; }
+        .switch { position:relative; width:38px; height:22px; }
+        .switch input { position:absolute; opacity:0; }
+        .switch i { position:absolute; inset:0; border-radius:20px; background:#263b4c; transition:.2s; }
+        .switch i::after { content:""; position:absolute; left:3px; top:3px; width:16px; height:16px; border-radius:50%; background:#9aabba; transition:.2s; }
+        .switch input:checked+i { background:rgba(255,179,92,.3); }
+        .switch input:checked+i::after { transform:translateX(16px); background:var(--orange); }
+        .readout { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+        .metric { padding:12px; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.025); }
+        .metric span { display:block; margin-bottom:5px; color:var(--muted); font-size:10px; }
+        .metric strong { color:var(--text); font:700 17px ui-monospace,Consolas,monospace; }
+        .formula { margin-top:auto; padding:14px; border:1px solid rgba(255,96,120,.22); border-radius:12px; background:rgba(255,96,120,.055); }
+        .formula strong { display:block; color:var(--red); font:700 18px Cambria,serif; }
+        .formula p { margin:6px 0 0; color:#a8bbc9; font-size:11px; line-height:1.6; }
+        .btn-home { display:inline-flex; margin-top:14px; color:var(--muted); font-size:12px; text-decoration:none; }
+        .canvas-container { position:relative; min-width:0; min-height:0; overflow:hidden; }
+        canvas { display:block; width:100%; height:100%; }
+        .hud { position:absolute; z-index:2; left:25px; right:25px; top:23px; display:flex; justify-content:space-between; align-items:flex-start; pointer-events:none; }
+        .state-pill { padding:10px 14px; border:1px solid var(--line); border-radius:10px; background:rgba(7,16,27,.68); backdrop-filter:blur(12px); }
+        .state-pill b { display:block; font-size:13px; }
+        .state-pill span { color:var(--muted); font-size:11px; }
+        .mach-pill { min-width:92px; padding:10px 14px; border:1px solid rgba(255,179,92,.35); border-radius:99px; color:var(--orange); background:rgba(7,16,27,.72); text-align:center; font:800 14px ui-monospace,Consolas,monospace; backdrop-filter:blur(12px); }
+        .legend { position:absolute; z-index:2; right:24px; bottom:22px; display:flex; gap:15px; padding:10px 13px; border:1px solid var(--line); border-radius:10px; color:var(--muted); background:rgba(7,16,27,.7); font-size:10px; backdrop-filter:blur(10px); pointer-events:none; }
+        .legend i { display:inline-block; width:17px; height:2px; margin-right:5px; vertical-align:middle; background:currentColor; }
+        .legend .wave { color:var(--cyan); }.legend .cone { color:var(--red); }.legend .path { color:var(--orange); }
+        .tip { position:absolute; z-index:2; left:25px; bottom:22px; max-width:330px; color:rgba(179,198,212,.72); font-size:11px; line-height:1.55; pointer-events:none; }
+        @media(max-width:850px){ body{height:auto;min-height:100vh;overflow:auto}.app{grid-template-columns:1fr;grid-template-rows:auto minmax(500px,62vh);height:auto}.controls{overflow:visible;border-right:0;border-bottom:1px solid var(--line);padding:18px}.canvas-container{min-height:500px}.formula{margin-top:4px}.tip{bottom:62px}.legend{left:20px;right:auto} }
+    </style>
+</head>
+<body>
+<main class="app">
+    <aside class="controls" aria-label="马赫锥控制面板">
+        <div class="eyebrow">ACOUSTICS · SHOCK WAVES</div>
+        <h1>马赫锥</h1>
+        <p class="intro">运动声源不断发出球面波。当声源跑得比波更快，所有波前的公切面便叠成冲击波。</p>
+        <div class="presets" role="group" aria-label="速度状态预设">
+            <button class="preset" data-mach="0.7"><b>亚声速</b><small>M = 0.7</small></button>
+            <button class="preset" data-mach="1"><b>声速</b><small>M = 1.0</small></button>
+            <button class="preset active" data-mach="2"><b>超声速</b><small>M = 2.0</small></button>
+        </div>
+        <section class="section">
+            <div class="section-head"><span>运动控制</span><span id="regimeLabel">SUPERSONIC</span></div>
+            <div class="transport"><button id="playBtn">Ⅱ&nbsp; 暂停</button><button id="resetBtn">↺ 重置</button></div>
+            <div class="control"><label for="mach"><span>马赫数 M = v / c</span><span class="value" id="machValue">2.00</span></label><input id="mach" type="range" min="0.3" max="3" value="2" step="0.01"></div>
+            <div class="control"><label for="soundSpeed"><span>声速 c</span><span class="value" id="soundValue">85 px/s</span></label><input id="soundSpeed" type="range" min="50" max="125" value="85" step="1"></div>
+            <div class="control"><label for="timeScale"><span>时间倍率</span><span class="value" id="timeValue">1.0×</span></label><input id="timeScale" type="range" min="0.25" max="1.75" value="1" step="0.05"></div>
+            <div class="toggle-row"><span>显示几何构造</span><label class="switch"><input id="construction" type="checkbox" checked><i></i></label></div>
+            <div class="toggle-row"><span>显示运动轨迹</span><label class="switch"><input id="showPath" type="checkbox" checked><i></i></label></div>
+        </section>
+        <section class="section">
+            <div class="section-head"><span>实时读数</span><span>LAB DATA</span></div>
+            <div class="readout">
+                <div class="metric"><span>声源速度 v</span><strong id="sourceSpeed">170</strong></div>
+                <div class="metric"><span>马赫角 μ</span><strong id="machAngle">30.0°</strong></div>
+            </div>
+        </section>
+        <div class="formula"><strong>sin μ = c / v = 1 / M</strong><p id="formulaNote">M &gt; 1 时，声源位于自己发出的波前之外，冲击波包络形成马赫锥。</p></div>
+        <a class="btn-home" href="/">← 返回展厅</a>
+    </aside>
+    <section class="canvas-container" id="stage" aria-label="马赫锥动态画布">
+        <canvas id="canvas" tabindex="0" aria-label="运动声源及声波波前动画"></canvas>
+        <div class="hud"><div class="state-pill"><b id="stateTitle">超声速：形成马赫锥</b><span id="stateSubtitle">声源速度大于声速 v &gt; c</span></div><div class="mach-pill" id="machPill">M 2.00</div></div>
+        <div class="tip">每个圆表示声源在过去某一时刻发出的波前；红色切线是这些圆的共同包络。</div>
+        <div class="legend" aria-hidden="true"><span class="wave"><i></i>声波波前</span><span class="path"><i></i>声源轨迹</span><span class="cone"><i></i>冲击波包络</span></div>
+    </section>
+</main>
+<script src="/lab-runtime.js"></script>
+<script>
+(() => {
+    const canvas=document.getElementById('canvas'),stage=document.getElementById('stage'),ctx=canvas.getContext('2d');
+    const ui={mach:document.getElementById('mach'),machValue:document.getElementById('machValue'),sound:document.getElementById('soundSpeed'),soundValue:document.getElementById('soundValue'),time:document.getElementById('timeScale'),timeValue:document.getElementById('timeValue'),play:document.getElementById('playBtn'),construction:document.getElementById('construction'),path:document.getElementById('showPath'),sourceSpeed:document.getElementById('sourceSpeed'),angle:document.getElementById('machAngle'),regime:document.getElementById('regimeLabel'),title:document.getElementById('stateTitle'),subtitle:document.getElementById('stateSubtitle'),pill:document.getElementById('machPill'),note:document.getElementById('formulaNote')};
+    const state={mach:2,c:85,timeScale:1,playing:true,t:0,last:performance.now(),waves:[],nextEmission:0};let w=0,h=0,dpr=1;
+    const colors={cyan:'#5ce7ff',orange:'#ffb35c',red:'#ff6078',green:'#75ffc7'};
+    function resize(){const r=stage.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,2);w=Math.max(1,r.width);h=Math.max(1,r.height);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);reset();}
+    function reset(){state.t=0;state.waves=[];state.nextEmission=0;draw();}
+    function sourcePosition(){return {x:70+state.t*state.mach*state.c,y:h*.52};}
+    function emit(){const p=sourcePosition();state.waves.push({x:p.x,y:p.y,born:state.t});state.nextEmission+=.16;}
+    function line(x1,y1,x2,y2,color,width=1,dash=[]){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.stroke();ctx.setLineDash([]);}
+    function circle(x,y,r,alpha=.5,width=1){if(r<=0)return;ctx.save();ctx.globalAlpha=alpha;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.strokeStyle=colors.cyan;ctx.lineWidth=width;ctx.stroke();ctx.restore();}
+    function background(){const g=ctx.createRadialGradient(w*.55,h*.48,0,w*.55,h*.48,Math.max(w,h)*.8);g.addColorStop(0,'#10283a');g.addColorStop(1,'#06101c');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);ctx.strokeStyle='rgba(130,167,193,.065)';ctx.lineWidth=1;for(let x=w%42;x<w;x+=42)line(x,0,x,h,'rgba(130,167,193,.055)');for(let y=h%42;y<h;y+=42)line(0,y,w,y,'rgba(130,167,193,.055)');}
+    function drawSource(x,y){ctx.save();ctx.translate(x,y);const glow=ctx.createRadialGradient(0,0,0,0,0,34);glow.addColorStop(0,'rgba(255,179,92,.35)');glow.addColorStop(1,'rgba(255,179,92,0)');ctx.fillStyle=glow;ctx.beginPath();ctx.arc(0,0,34,0,Math.PI*2);ctx.fill();ctx.fillStyle=colors.orange;ctx.beginPath();ctx.moveTo(18,0);ctx.lineTo(-12,-9);ctx.lineTo(-5,0);ctx.lineTo(-12,9);ctx.closePath();ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.3;ctx.stroke();ctx.restore();ctx.textAlign='center';ctx.font='700 11px Inter,sans-serif';ctx.fillStyle='rgba(238,247,255,.78)';ctx.fillText('运动声源',x,y-25);}
+    function drawVelocity(x,y){const len=Math.min(105,45+state.mach*20);line(x-len-20,y-42,x-20,y-42,colors.orange,2);ctx.fillStyle=colors.orange;ctx.beginPath();ctx.moveTo(x-20,y-42);ctx.lineTo(x-30,y-48);ctx.lineTo(x-30,y-36);ctx.closePath();ctx.fill();ctx.font='12px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText('v = '+Math.round(state.mach*state.c),x-len/2-20,y-51);}
+    function drawCone(x,y){if(state.mach<=1)return;const mu=Math.asin(1/state.mach),maxBack=Math.min(x+40,w*1.35),dx=Math.min(maxBack,(Math.min(y,h-y)-28)/Math.tan(mu)),dy=dx*Math.tan(mu);ctx.save();ctx.fillStyle='rgba(255,96,120,.055)';ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-dx,y-dy);ctx.lineTo(x-dx,y+dy);ctx.closePath();ctx.fill();ctx.restore();line(x,y,x-dx,y-dy,colors.red,3);line(x,y,x-dx,y+dy,colors.red,3);ctx.fillStyle='rgba(255,96,120,.16)';ctx.beginPath();ctx.moveTo(x,y);ctx.arc(x,y,64,Math.PI-mu,Math.PI+mu);ctx.closePath();ctx.fill();if(ui.construction.checked){line(x,y,x-78,y,'rgba(238,247,255,.35)',1,[4,4]);ctx.beginPath();ctx.arc(x,y,49,Math.PI,Math.PI+mu);ctx.strokeStyle=colors.green;ctx.lineWidth=2;ctx.stroke();ctx.fillStyle=colors.green;ctx.font='700 12px ui-monospace,monospace';ctx.textAlign='right';ctx.fillText('μ = '+(mu*180/Math.PI).toFixed(1)+'°',x-55,y+24);}}
+    function drawSonicWall(x,y){if(Math.abs(state.mach-1)>.035)return;line(x,y-h*.42,x,y+h*.42,colors.red,3);ctx.fillStyle='rgba(255,96,120,.08)';ctx.fillRect(x-8,y-h*.42,16,h*.84);}
+    function updateReadout(){const m=state.mach,superSonic=m>1.001,sonic=Math.abs(m-1)<=.035;ui.machValue.textContent=m.toFixed(2);ui.soundValue.textContent=state.c+' px/s';ui.sourceSpeed.textContent=Math.round(m*state.c)+' px/s';ui.pill.textContent='M '+m.toFixed(2);ui.angle.textContent=superSonic?(Math.asin(1/m)*180/Math.PI).toFixed(1)+'°':'—';document.querySelectorAll('.preset').forEach(b=>b.classList.toggle('active',Math.abs(+b.dataset.mach-m)<.015));if(sonic){ui.regime.textContent='SONIC';ui.title.textContent='声速：波前在前方堆积';ui.subtitle.textContent='声源速度等于声速 v = c';ui.note.textContent='M = 1 时，声源恰好追上自己发出的波，波前在前方叠加。';}else if(superSonic){ui.regime.textContent='SUPERSONIC';ui.title.textContent='超声速：形成马赫锥';ui.subtitle.textContent='声源速度大于声速 v > c';ui.note.textContent='M > 1 时，声源位于自己发出的波前之外，冲击波包络形成马赫锥。';}else{ui.regime.textContent='SUBSONIC';ui.title.textContent='亚声速：波前向四周传播';ui.subtitle.textContent='声源速度小于声速 v < c';ui.note.textContent='M < 1 时，每个波前都能跑到声源前方，不会形成共同的锥形包络。';}}
+    function draw(){background();const p=sourcePosition();if(ui.path.checked){line(25,p.y,w-25,p.y,'rgba(255,179,92,.22)',1,[8,8]);ctx.font='11px Inter,sans-serif';ctx.fillStyle='rgba(255,179,92,.55)';ctx.textAlign='left';ctx.fillText('声源运动轨迹',28,p.y+18);}for(const wave of state.waves){const r=(state.t-wave.born)*state.c,life=Math.max(.1,1-r/Math.max(w,h));circle(wave.x,wave.y,r,.18+.48*life,ui.construction.checked?1.35:1);}drawCone(p.x,p.y);drawSonicWall(p.x,p.y);drawVelocity(p.x,p.y);drawSource(p.x,p.y);updateReadout();}
+    function update(now){const dt=Math.min((now-state.last)/1000,.05);state.last=now;if(state.playing){state.t+=dt*state.timeScale;while(state.t>=state.nextEmission)emit();state.waves=state.waves.filter(q=>(state.t-q.born)*state.c<Math.max(w,h)*1.15);const p=sourcePosition();if(p.x>w+90)reset();draw();}requestAnimationFrame(update);}
+    function setPlaying(on){state.playing=on;ui.play.innerHTML=on?'Ⅱ&nbsp; 暂停':'▶&nbsp; 继续';}
+    document.querySelectorAll('.preset').forEach(b=>b.addEventListener('click',()=>{state.mach=+b.dataset.mach;ui.mach.value=state.mach;reset();updateReadout();}));
+    ui.mach.addEventListener('input',e=>{state.mach=+e.target.value;reset();updateReadout();});ui.sound.addEventListener('input',e=>{state.c=+e.target.value;reset();updateReadout();});ui.time.addEventListener('input',e=>{state.timeScale=+e.target.value;ui.timeValue.textContent=state.timeScale.toFixed(1)+'×';});ui.play.addEventListener('click',()=>setPlaying(!state.playing));document.getElementById('resetBtn').addEventListener('click',reset);[ui.construction,ui.path].forEach(el=>el.addEventListener('change',draw));canvas.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();setPlaying(!state.playing)}});window.addEventListener('resize',resize);new ResizeObserver(resize).observe(stage);resize();requestAnimationFrame(update);
+})();
+</script>
+</body>
+</html>
