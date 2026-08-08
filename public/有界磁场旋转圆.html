@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07111f">
+    <title>有界磁场中的带电粒子｜旋转圆法</title>
+    <style>
+        :root {
+            --bg: #07111f;
+            --panel: #0e1b2e;
+            --panel-2: #12233a;
+            --line: #263b55;
+            --text: #eaf2ff;
+            --muted: #8fa5be;
+            --violet: #a78bfa;
+            --cyan: #38bdf8;
+            --green: #4ade80;
+            --amber: #fbbf24;
+            --rose: #fb7185;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            color: var(--text);
+            background: var(--bg);
+            font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+        }
+
+        .controls {
+            width: 336px;
+            flex: 0 0 auto;
+            padding: 22px 20px;
+            overflow-y: auto;
+            background: linear-gradient(180deg, #101f34 0%, #0b1728 100%);
+            border-right: 1px solid var(--line);
+            box-shadow: 12px 0 40px rgba(0, 0, 0, .24);
+            z-index: 2;
+        }
+
+        .eyebrow {
+            color: var(--violet);
+            font: 700 11px/1.2 ui-monospace, monospace;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+        }
+        h1 { margin: 8px 0 6px; font-size: 22px; line-height: 1.28; letter-spacing: .02em; }
+        .intro { margin: 0 0 20px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+
+        .section {
+            padding: 15px 0;
+            border-top: 1px solid rgba(143, 165, 190, .16);
+        }
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 13px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #c7d7ea;
+            letter-spacing: .08em;
+        }
+        .section-title::before { content: ""; width: 4px; height: 14px; border-radius: 2px; background: var(--violet); }
+        label.value-row { display: flex; justify-content: space-between; gap: 12px; margin: 11px 0 7px; color: var(--muted); font-size: 13px; }
+        .value { color: var(--text); font: 700 13px ui-monospace, monospace; }
+
+        input[type="range"] { width: 100%; height: 5px; accent-color: var(--violet); cursor: pointer; }
+        .segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        button {
+            min-height: 40px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            color: #c8d7e8;
+            background: #142740;
+            font: 650 13px inherit;
+            cursor: pointer;
+            transition: .18s ease;
+        }
+        button:hover { border-color: #4c6787; background: #19304e; transform: translateY(-1px); }
+        button.active { border-color: var(--violet); color: #f3efff; background: rgba(167, 139, 250, .15); box-shadow: inset 0 0 0 1px rgba(167,139,250,.1); }
+        button.primary { border-color: #7c5ce0; color: #fff; background: linear-gradient(135deg, #7c3aed, #6d5ce7); box-shadow: 0 8px 22px rgba(124, 58, 237, .24); }
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .actions .primary { grid-column: 1 / -1; }
+
+        .checks { display: grid; gap: 9px; }
+        .check { display: flex; gap: 9px; align-items: center; color: #b9c9da; font-size: 13px; cursor: pointer; }
+        .check input { width: 16px; height: 16px; accent-color: var(--violet); }
+
+        .formula {
+            padding: 12px 13px;
+            border: 1px solid rgba(56,189,248,.22);
+            border-radius: 10px;
+            color: #b7cae0;
+            background: rgba(5,14,27,.5);
+            font-size: 12px;
+            line-height: 1.7;
+        }
+        .formula strong { color: var(--cyan); font-family: Cambria, serif; font-size: 15px; }
+
+        .canvas-container { position: relative; flex: 1 1 auto; min-width: 0; min-height: 0; overflow: hidden; }
+        .canvas-container::before {
+            content: ""; position: absolute; inset: 0; pointer-events: none;
+            background: radial-gradient(circle at 55% 48%, rgba(26, 52, 83, .3), transparent 50%),
+                        linear-gradient(rgba(92,124,158,.035) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(92,124,158,.035) 1px, transparent 1px);
+            background-size: auto, 32px 32px, 32px 32px;
+        }
+        canvas { display: block; width: 100%; height: 100%; position: relative; }
+
+        .btn-home {
+            position: absolute; z-index: 5; top: 18px; right: 20px;
+            padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px;
+            color: #afc2d8; background: rgba(10, 24, 41, .82); backdrop-filter: blur(8px);
+            text-decoration: none; font-size: 13px; font-weight: 650;
+        }
+        .btn-home:hover { border-color: var(--violet); color: #fff; }
+
+        .readout {
+            position: absolute; z-index: 3; left: 20px; top: 18px; min-width: 220px;
+            padding: 13px 15px; border: 1px solid rgba(70, 94, 124, .7); border-radius: 12px;
+            background: rgba(8, 20, 35, .78); backdrop-filter: blur(10px);
+            box-shadow: 0 16px 44px rgba(0,0,0,.2); pointer-events: none;
+        }
+        .readout-head { display: flex; align-items: center; gap: 8px; color: #c8d7e7; font-size: 12px; font-weight: 700; }
+        .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }
+        .readout-grid { display: grid; grid-template-columns: auto auto; gap: 5px 18px; margin-top: 9px; color: var(--muted); font: 12px/1.45 ui-monospace, monospace; }
+        .readout-grid b { color: var(--text); text-align: right; font-weight: 650; }
+
+        .hint {
+            position: absolute; z-index: 3; left: 50%; bottom: 18px; transform: translateX(-50%);
+            padding: 8px 13px; border: 1px solid rgba(70,94,124,.55); border-radius: 99px;
+            color: #9fb2c8; background: rgba(8,20,35,.72); backdrop-filter: blur(8px);
+            font-size: 12px; pointer-events: none; white-space: nowrap;
+        }
+
+        @media (max-width: 900px) {
+            .controls { width: 100%; max-height: 43dvh; padding: 14px 16px; }
+            h1 { font-size: 18px; }
+            .intro { display: none; }
+            .readout { left: 10px; top: 10px; min-width: 185px; padding: 9px 11px; }
+            .readout-grid { gap: 3px 12px; }
+            .hint { bottom: 10px; max-width: calc(100% - 20px); overflow: hidden; text-overflow: ellipsis; }
+        }
+    </style>
+    <link rel="stylesheet" href="/lab-common.css">
+    <script src="/lab-runtime.js"></script>
+</head>
+<body>
+    <aside class="controls">
+        <div class="eyebrow">Electromagnetism · 02</div>
+        <h1>上边界磁场 · 旋转圆法</h1>
+        <p class="intro">粒子从固定点 O 以相同速率、不同方向发射。轨迹圆绕 O 旋转，并在上方边界板的 P 点离开磁场。</p>
+
+        <section class="section">
+            <div class="section-title">发射与边界</div>
+            <label class="value-row" for="angle"><span>发射方向 α（0° 水平向左）</span><span class="value" id="angleValue">62°</span></label>
+            <input id="angle" type="range" min="0" max="360" step="0.1" value="62">
+            <label class="value-row" for="height"><span>板距 h / r</span><span class="value" id="heightValue">1.20</span></label>
+            <input id="height" type="range" min="0.35" max="1.90" step="0.01" value="1.20">
+        </section>
+
+        <section class="section">
+            <div class="section-title">洛伦兹力方向</div>
+            <div class="segmented" id="chargeGroup">
+                <button type="button" data-sign="1" class="active">q &gt; 0</button>
+                <button type="button" data-sign="-1">q &lt; 0</button>
+            </div>
+            <div class="segmented" id="fieldGroup" style="margin-top:8px">
+                <button type="button" data-sign="1">⊙ B 向外</button>
+                <button type="button" data-sign="-1" class="active">⊗ B 向里</button>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">动态演示</div>
+            <div class="actions">
+                <button type="button" class="primary" id="launch">▶ 发射粒子</button>
+                <button type="button" id="rotate">⟳ 自动改变方向</button>
+                <button type="button" id="reset">↺ 回到初始</button>
+                <button type="button" id="tangent" style="grid-column:1 / -1">⊥ 跳到临界相切角</button>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">几何辅助</div>
+            <div class="checks">
+                <label class="check"><input id="showFamily" type="checkbox" checked> 显示不同角度的轨迹圆</label>
+                <label class="check"><input id="showVectors" type="checkbox" checked> 显示速度与洛伦兹力</label>
+                <label class="check"><input id="showGeometry" type="checkbox" checked> 显示半径与圆心角</label>
+            </div>
+        </section>
+
+        <div class="formula">
+            <strong>r = mv / |q|B　　s = rθ</strong><br>
+            r 固定时，圆心 C 在以 O 为圆心、r 为半径的圆上移动。先求轨迹圆与直线 y = h 的首个交点 P，再由运动方向确定圆心角 θ 和弧长 s。
+        </div>
+    </aside>
+
+    <main class="canvas-container" id="stage">
+        <a href="/" class="btn-home">⌂ 返回展厅</a>
+        <div class="readout">
+            <div class="readout-head"><span class="pulse" id="pulse"></span><span id="stateText">可到达上板</span></div>
+            <div class="readout-grid">
+                <span>交点位置 xₚ</span><b id="positionOut">—</b>
+                <span>圆心角 θ</span><b id="sweepOut">—</b>
+                <span>轨迹长度 s</span><b id="lengthOut">—</b>
+                <span>运动时间 t</span><b id="timeOut">—</b>
+            </div>
+        </div>
+        <div class="hint">改变 α：轨迹圆绕发射点 O 旋转，观察交点 P 和弧长 s 的变化</div>
+        <canvas id="simCanvas" role="img" tabindex="0" aria-label="带电粒子从固定点以不同方向发射并与磁场上边界相交的旋转圆动态演示"></canvas>
+    </main>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const stage = document.getElementById('stage');
+        const angleInput = document.getElementById('angle');
+        const heightInput = document.getElementById('height');
+        const angleValue = document.getElementById('angleValue');
+        const heightValue = document.getElementById('heightValue');
+        const launchBtn = document.getElementById('launch');
+        const rotateBtn = document.getElementById('rotate');
+        const tangentBtn = document.getElementById('tangent');
+        const pulse = document.getElementById('pulse');
+
+        const state = {
+            alpha: 62 * Math.PI / 180, height: 1.2, q: 1, B: -1,
+            particleT: 0, running: false, rotating: false,
+            trail: [], lastTime: 0
+        };
+        const colors = { orbit:'#a78bfa', particle:'#fbbf24', velocity:'#4ade80', force:'#fb7185', geometry:'#38bdf8' };
+        // 通过站点访问时使用公共运行时；直接双击 HTML（file://）时使用本地回退，
+        // 避免绝对路径 /lab-runtime.js 无法加载导致动画在第一帧停止。
+        const frameScale = window.PhysicsLab?.frameScale ?? ((timestamp, previousTimestamp, maxFrames = 3) => {
+            if (!Number.isFinite(previousTimestamp) || previousTimestamp <= 0) return 1;
+            return Math.min(Math.max(0, timestamp - previousTimestamp) / (1000 / 60), maxFrames);
+        });
+        function mod(a) { return ((a % (Math.PI*2)) + Math.PI*2) % (Math.PI*2); }
+        function deg(a) { return a * 180 / Math.PI; }
+
+        function model(alpha = state.alpha) {
+            const r = 1, O = {x:0,y:0}, turn = state.q * state.B;
+            // 角度以水平向左为 0°，沿“向左 → 向下 → 向右 → 向上”方向增加。
+            const v = {x:-Math.cos(alpha), y:-Math.sin(alpha)};
+            const C = {x:turn*r*v.y, y:-turn*r*v.x};
+            const phi0 = Math.atan2(-C.y, -C.x), direction = -turn;
+            const vertical = state.height - C.y;
+            const candidates = [];
+            if (Math.abs(vertical) <= r + 1e-9) {
+                const dx = Math.sqrt(Math.max(0, r*r - vertical*vertical));
+                [C.x-dx, C.x+dx].forEach(x => {
+                    const P = {x, y:state.height};
+                    const phi = Math.atan2(P.y-C.y, P.x-C.x);
+                    const sweep = direction > 0 ? mod(phi-phi0) : mod(phi0-phi);
+                    if (sweep > 1e-5) candidates.push({P,phi,sweep});
+                });
+            }
+            candidates.sort((a,b) => a.sweep-b.sweep);
+            const hit = candidates.length > 0;
+            const chosen = hit ? candidates[0] : {P:null, phi:phi0, sweep:Math.PI*2};
+            const tangent = hit && Math.abs(vertical-r) < 1e-7;
+            return {r,O,C,v,turn,direction,phi0,hit,tangent,P:chosen.P,phiP:chosen.phi,sweep:chosen.sweep};
+        }
+
+        function tangentAngles() {
+            const turn = state.q * state.B;
+            const cosine = (state.height - 1) / turn;
+            if (Math.abs(cosine) > 1) return [];
+            const first = Math.acos(Math.max(-1, Math.min(1, cosine)));
+            return first < 1e-9 || Math.abs(first-Math.PI) < 1e-9 ? [first] : [first, Math.PI*2-first];
+        }
+
+        function nearestTangentAngle() {
+            const choices = tangentAngles();
+            if (!choices.length) return null;
+            return choices.reduce((best, angle) => {
+                const distance = Math.abs(Math.atan2(Math.sin(angle-state.alpha), Math.cos(angle-state.alpha)));
+                const bestDistance = Math.abs(Math.atan2(Math.sin(best-state.alpha), Math.cos(best-state.alpha)));
+                return distance < bestDistance ? angle : best;
+            });
+        }
+
+        function resize() {
+            const rect = stage.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+            canvas.width = Math.round(rect.width*dpr); canvas.height = Math.round(rect.height*dpr);
+            canvas.style.width = rect.width+'px'; canvas.style.height = rect.height+'px';
+            ctx.setTransform(dpr,0,0,dpr,0,0);
+        }
+        function viewport() {
+            const w=stage.clientWidth, h=stage.clientHeight;
+            return {ox:w*.55, oy:h*.72, scale:Math.min(w*.17,h*.235,190)};
+        }
+        function screen(p,vp) { return {x:vp.ox+p.x*vp.scale, y:vp.oy-p.y*vp.scale}; }
+        function line(a,b,color,width=1,dash=[]) {
+            ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash(dash);
+            ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); ctx.restore();
+        }
+        function dot(p,r,fill,stroke=null) {
+            ctx.save(); ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2); ctx.fillStyle=fill;
+            ctx.shadowColor=fill; ctx.shadowBlur=r>5?13:0; ctx.fill();
+            if(stroke){ctx.shadowBlur=0;ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();} ctx.restore();
+        }
+        function text(label,p,color='#d9e6f3',align='center',size=12) {
+            ctx.save(); ctx.font=`600 ${size}px "Segoe UI",sans-serif`;ctx.textAlign=align;ctx.fillStyle=color;
+            ctx.shadowColor='#07111f';ctx.shadowBlur=5;ctx.fillText(label,p.x,p.y);ctx.restore();
+        }
+        function arrow(from,vec,color,label,size=44) {
+            const m=Math.hypot(vec.x,vec.y)||1, ux=vec.x/m, uy=-vec.y/m;
+            const to={x:from.x+ux*size,y:from.y+uy*size}, nx=-uy,ny=ux;
+            line(from,to,color,2.4);line(to,{x:to.x-ux*9+nx*5,y:to.y-uy*9+ny*5},color,2.4);
+            line(to,{x:to.x-ux*9-nx*5,y:to.y-uy*9-ny*5},color,2.4);
+            text(label,{x:to.x+nx*10,y:to.y+ny*10},color,'center',12);
+        }
+        function pointOnOrbit(m,t) {
+            const phi=m.phi0+m.direction*m.sweep*t;
+            return {x:m.C.x+Math.cos(phi),y:m.C.y+Math.sin(phi),phi};
+        }
+        function orbitArc(m,vp,progress=1,color=colors.orbit,width=3,opacity=1) {
+            const C=screen(m.C,vp), start=-m.phi0, end=start-m.direction*m.sweep*progress;
+            ctx.save();ctx.globalAlpha=opacity;ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';
+            ctx.beginPath();ctx.arc(C.x,C.y,vp.scale,start,end,m.direction>0);ctx.stroke();ctx.restore();
+        }
+        function drawField(vp,plateY) {
+            const w=stage.clientWidth,h=stage.clientHeight;
+            const grad=ctx.createLinearGradient(0,plateY,0,h);grad.addColorStop(0,'rgba(124,58,237,.13)');grad.addColorStop(1,'rgba(28,42,74,.025)');
+            ctx.fillStyle=grad;ctx.fillRect(0,plateY,w,h-plateY);
+            ctx.save();ctx.strokeStyle='rgba(167,139,250,.25)';ctx.lineWidth=1;
+            const gap=36;
+            for(let x=24;x<w;x+=gap) for(let y=plateY+25;y<h;y+=gap) {
+                if(state.B<0){ctx.beginPath();ctx.moveTo(x-3,y-3);ctx.lineTo(x+3,y+3);ctx.moveTo(x+3,y-3);ctx.lineTo(x-3,y+3);ctx.stroke();}
+                else{ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(x,y,.8,0,Math.PI*2);ctx.fillStyle='rgba(167,139,250,.5)';ctx.fill();}
+            } ctx.restore();
+            const plateLeft=w*.09, plateRight=w*.91, plateThickness=10;
+            ctx.save();
+            const plateGradient=ctx.createLinearGradient(0,plateY-plateThickness,0,plateY);
+            plateGradient.addColorStop(0,'#d7e2ef');plateGradient.addColorStop(1,'#788da8');
+            ctx.fillStyle=plateGradient;ctx.fillRect(plateLeft,plateY-plateThickness,plateRight-plateLeft,plateThickness);
+            ctx.strokeStyle='#eef5fc';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(plateLeft,plateY-plateThickness);ctx.lineTo(plateRight,plateY-plateThickness);ctx.stroke();
+            // y = h 对应板的下表面；轨迹和交点均精确终止于此线。
+            ctx.strokeStyle='#f5c2cc';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(plateLeft,plateY);ctx.lineTo(plateRight,plateY);ctx.stroke();ctx.restore();
+            text('a',{x:plateLeft-10,y:plateY+5},'#8fa5be','right',13); text('b',{x:plateRight+10,y:plateY+5},'#8fa5be','left',13);
+            text('上方板（下表面 y = h）',{x:w*.5,y:plateY-plateThickness-9},'#c2d1e1','center',13);
+        }
+        function drawAngle(O) {
+            ctx.save();ctx.strokeStyle=colors.geometry;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(O.x,O.y,34,Math.PI,Math.PI-state.alpha,true);ctx.stroke();ctx.restore();
+            text('α',{x:O.x-43*Math.cos(state.alpha/2),y:O.y+43*Math.sin(state.alpha/2)},colors.geometry);
+        }
+
+        function draw() {
+            const vp=viewport(), m=model(), O=screen(m.O,vp), C=screen(m.C,vp);
+            const plateY=screen({x:0,y:state.height},vp).y;
+            ctx.clearRect(0,0,stage.clientWidth,stage.clientHeight); drawField(vp,plateY);
+
+            if(document.getElementById('showFamily').checked) {
+                [0,45,90,135,180,225,270,315].forEach(a => {
+                    if(Math.abs(a-deg(state.alpha))<4)return;
+                    const g=model(a*Math.PI/180), gc=screen(g.C,vp);
+                    ctx.save();ctx.strokeStyle='rgba(167,139,250,.15)';ctx.lineWidth=1;ctx.setLineDash([5,8]);
+                    ctx.beginPath();ctx.arc(gc.x,gc.y,vp.scale,0,Math.PI*2);ctx.stroke();ctx.restore();
+                    if(g.hit){const gp=screen(g.P,vp);dot(gp,2.5,'rgba(251,113,133,.48)');}
+                });
+            }
+            ctx.save();ctx.strokeStyle='rgba(167,139,250,.38)';ctx.lineWidth=1.4;ctx.setLineDash([7,6]);
+            ctx.beginPath();ctx.arc(C.x,C.y,vp.scale,0,Math.PI*2);ctx.stroke();ctx.restore();
+            orbitArc(m,vp,1,m.hit?colors.orbit:'#64748b',m.hit?3:2,m.hit?1:.75);
+
+            if(document.getElementById('showGeometry').checked) {
+                line(O,C,'rgba(56,189,248,.8)',1.5,[5,5]);
+                if(m.hit){const P=screen(m.P,vp);line(C,P,'rgba(56,189,248,.75)',1.4);line(O,P,'rgba(251,191,36,.48)',1.2,[5,5]);}
+                drawAngle(O);dot(C,4,colors.geometry);text('C',{x:C.x+9,y:C.y-9},colors.geometry,'left');
+                text('r',{x:(O.x+C.x)/2+8,y:(O.y+C.y)/2-6},colors.geometry);
+            }
+            dot(O,6,colors.green,'#eafff0');text('发射点 O',{x:O.x-12,y:O.y+24},colors.green,'right',12);
+            if(m.hit){
+                const P=screen(m.P,vp);dot(P,6,colors.force,'#ffe6eb');
+                text(m.tangent?'切点 T':'交点 P',{x:P.x,y:P.y-14},colors.force,'center',14);
+                if(m.tangent){
+                    const side=m.C.x<=m.P.x?1:-1;
+                    line({x:P.x,y:P.y+2},{x:P.x,y:P.y+13},'#fbbf24',1.5);
+                    line({x:P.x,y:P.y+13},{x:P.x+side*11,y:P.y+13},'#fbbf24',1.5);
+                    line({x:P.x+side*11,y:P.y+13},{x:P.x+side*11,y:P.y+2},'#fbbf24',1.5);
+                }
+            }
+
+            const p=pointOnOrbit(m,state.particleT), ps=screen(p,vp);
+            state.trail.forEach((q,i)=>{const t=screen(q,vp);dot(t,1.2+i/Math.max(1,state.trail.length)*1.5,`rgba(251,191,36,${.07+i/state.trail.length*.28})`);});
+            dot(ps,7.5,colors.particle,'#fff5c9');
+            if(document.getElementById('showVectors').checked){
+                const tangent=p.phi+m.direction*Math.PI/2;
+                arrow(ps,{x:Math.cos(tangent),y:Math.sin(tangent)},colors.velocity,'v',46);
+                arrow(ps,{x:m.C.x-p.x,y:m.C.y-p.y},colors.force,'Fᴸ',38);
+            }
+            updateReadout(m);
+        }
+        function updateReadout(m) {
+            document.getElementById('positionOut').textContent=m.hit?(m.P.x>=0?'+':'')+m.P.x.toFixed(3)+' r':'不可达';
+            document.getElementById('sweepOut').textContent=m.hit?deg(m.sweep).toFixed(1)+'°':'—';
+            document.getElementById('lengthOut').textContent=m.hit?m.sweep.toFixed(3)+' r':'—';
+            document.getElementById('timeOut').textContent=m.hit?m.sweep.toFixed(3)+' / ω':'—';
+        }
+        function resetParticle(){state.running=false;state.particleT=0;state.trail=[];launchBtn.textContent='▶ 发射粒子';}
+        function displayAngle(){const value=deg(state.alpha);return (Math.abs(value-Math.round(value))<.005?Math.round(value):value.toFixed(3))+'°';}
+        function syncInputs(){angleInput.value=deg(state.alpha);angleValue.textContent=displayAngle();heightValue.textContent=state.height.toFixed(2);}
+        angleInput.addEventListener('input',()=>{
+            state.alpha=Number(angleInput.value)*Math.PI/180;
+            const critical=nearestTangentAngle();
+            if(critical!==null&&Math.abs(Math.atan2(Math.sin(critical-state.alpha),Math.cos(critical-state.alpha)))<0.06*Math.PI/180)state.alpha=critical;
+            syncInputs();resetParticle();
+        });
+        heightInput.addEventListener('input',()=>{state.height=Number(heightInput.value);heightValue.textContent=state.height.toFixed(2);resetParticle();});
+        document.querySelectorAll('#chargeGroup button').forEach(btn=>btn.addEventListener('click',()=>{state.q=Number(btn.dataset.sign);document.querySelectorAll('#chargeGroup button').forEach(b=>b.classList.toggle('active',b===btn));resetParticle();}));
+        document.querySelectorAll('#fieldGroup button').forEach(btn=>btn.addEventListener('click',()=>{state.B=Number(btn.dataset.sign);document.querySelectorAll('#fieldGroup button').forEach(b=>b.classList.toggle('active',b===btn));resetParticle();}));
+        launchBtn.addEventListener('click',()=>{if(state.particleT>=1){state.particleT=0;state.trail=[];}state.running=!state.running;launchBtn.textContent=state.running?'Ⅱ 暂停粒子':'▶ 继续运动';});
+        rotateBtn.addEventListener('click',()=>{state.rotating=!state.rotating;resetParticle();rotateBtn.classList.toggle('active',state.rotating);rotateBtn.textContent=state.rotating?'Ⅱ 停止改变':'⟳ 自动改变方向';});
+        tangentBtn.addEventListener('click',()=>{
+            const angle=nearestTangentAngle();
+            if(angle===null){tangentBtn.textContent='当前板距不存在相切轨迹';setTimeout(()=>tangentBtn.textContent='⊥ 跳到临界相切角',1400);return;}
+            state.alpha=angle;state.rotating=false;rotateBtn.classList.remove('active');rotateBtn.textContent='⟳ 自动改变方向';resetParticle();syncInputs();
+        });
+        document.getElementById('reset').addEventListener('click',()=>{
+            state.alpha=62*Math.PI/180;state.height=1.2;state.q=1;state.B=-1;state.rotating=false;heightInput.value=1.2;
+            document.querySelectorAll('#chargeGroup button').forEach(b=>b.classList.toggle('active',b.dataset.sign==='1'));
+            document.querySelectorAll('#fieldGroup button').forEach(b=>b.classList.toggle('active',b.dataset.sign==='-1'));
+            rotateBtn.classList.remove('active');rotateBtn.textContent='⟳ 自动改变方向';resetParticle();syncInputs();
+        });
+        document.querySelectorAll('.checks input').forEach(input=>input.addEventListener('change',draw));
+        function animate(timestamp){
+            const dt=frameScale(timestamp,state.lastTime,2.5);state.lastTime=timestamp;
+            if(state.rotating){state.alpha=mod(state.alpha+.0055*dt);syncInputs();}
+            if(state.running){const m=model();state.particleT=Math.min(1,state.particleT+.006*dt/Math.max(.55,m.sweep/Math.PI));if(Math.floor(timestamp/28)!==Math.floor((timestamp-16.7*dt)/28))state.trail.push(pointOnOrbit(m,state.particleT));if(state.trail.length>60)state.trail.shift();if(state.particleT>=1){state.running=false;launchBtn.textContent=m.hit?'↻ 再次发射':'↻ 未碰板，再试一次';}}
+            const m=model();document.getElementById('stateText').textContent=state.rotating?'发射方向改变中':state.running?'粒子运动中':m.tangent?'临界状态：轨迹与板相切':m.hit?(state.particleT>=1?'已到达上板':'轨迹与板相交'):'当前方向无法到达上板';
+            pulse.style.background=m.hit?(state.running?colors.particle:colors.velocity):colors.force;pulse.style.boxShadow=`0 0 10px ${pulse.style.background}`;
+            draw();requestAnimationFrame(animate);
+        }
+        window.addEventListener('resize',resize);resize();syncInputs();requestAnimationFrame(animate);
+    </script>
+</body>
+</html>
