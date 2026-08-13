@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title desc">
+  <title id="title">示波器扫描波形</title><desc id="desc">绿色荧光屏上显示两周期正弦曲线与扫描光点</desc>
+  <defs><radialGradient id="bg"><stop stop-color="#174a31"/><stop offset="1" stop-color="#06110c"/></radialGradient><filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><pattern id="grid" width="58" height="47" patternUnits="userSpaceOnUse"><path d="M58 0H0V47" fill="none" stroke="#5ba978" stroke-opacity=".22"/></pattern></defs>
+  <rect width="640" height="400" fill="url(#bg)"/><circle cx="520" cy="-5" r="220" fill="#5cff9b" opacity=".08"/>
+  <rect x="45" y="55" width="550" height="290" rx="25" fill="#020a06" stroke="#387653" stroke-width="3"/><rect x="66" y="77" width="508" height="246" rx="12" fill="url(#grid)"/>
+  <path d="M66 200H574M320 77V323" stroke="#8ed6aa" stroke-opacity=".3"/>
+  <path d="M68 200c42-105 84-105 126 0s84 105 126 0 84-105 126 0 84 105 126 0" fill="none" stroke="#8affb2" stroke-width="5" stroke-linecap="round" filter="url(#glow)"/>
+  <circle cx="572" cy="200" r="7" fill="#effff4" filter="url(#glow)"/><text x="78" y="105" fill="#8affb2" font-family="Segoe UI, sans-serif" font-size="16" font-weight="700">T扫描 = 2T信号</text><text x="320" y="374" fill="#9bc0aa" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="15">扫描 · 偏转 · 同步</text>
+</svg>

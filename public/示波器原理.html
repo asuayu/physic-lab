@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07140f">
+  <meta name="description" content="交互演示示波器的垂直偏转、水平扫描、触发同步，以及扫描周期改变时屏幕波形的变化。">
+  <title>示波器原理：扫描、偏转与同步</title>
+  <link rel="stylesheet" href="/lab-common.css">
+  <script src="/lab-runtime.js"></script>
+  <style>
+    :root{color-scheme:dark;--ink:#e7fdf3;--muted:#8eab9e;--panel:#0d2019;--line:#214235;--green:#68f6a2;--mint:#b6ffd0;--amber:#ffbd59;--blue:#68b7ff;--red:#ff7a75}
+    *{box-sizing:border-box}html{background:#06100c}body{margin:0;min-height:100vh;font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);background:radial-gradient(circle at 65% -10%,#164831 0,transparent 34%),linear-gradient(145deg,#07130e,#091a14 54%,#050c09);overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.18;background-image:linear-gradient(rgba(117,255,174,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(117,255,174,.06) 1px,transparent 1px);background-size:36px 36px;mask-image:linear-gradient(to bottom,#000,transparent 82%)}
+    .shell{width:min(1220px,calc(100% - 28px));margin:auto;padding:28px 0 54px;position:relative}.btn-home{display:inline-flex;align-items:center;gap:7px;color:#b9ffd3;text-decoration:none;font-weight:700;font-size:14px;padding:9px 13px;border:1px solid #2e6f50;border-radius:999px;background:rgba(7,23,16,.82);backdrop-filter:blur(10px)}
+    .hero{display:grid;grid-template-columns:1.35fr .65fr;gap:28px;align-items:end;padding:46px 2px 26px}.eyebrow{margin:0 0 11px;color:var(--green);font-size:13px;font-weight:800;letter-spacing:.18em;text-transform:uppercase}.hero h1{margin:0;font-size:clamp(2.35rem,5.8vw,5.1rem);line-height:.98;letter-spacing:-.055em;max-width:760px}.hero h1 span{color:transparent;-webkit-text-stroke:1px #74dca0}.hero p{margin:20px 0 0;max-width:720px;color:#a9c3b7;font-size:16px;line-height:1.8}.hero-fact{border-left:1px solid #315545;padding:4px 0 4px 22px;color:#b7d1c5;line-height:1.7}.hero-fact b{display:block;color:var(--amber);font-size:38px;line-height:1;margin-bottom:10px;font-variant-numeric:tabular-nums}.hero-fact span{font-size:13px;color:#789589}
+    .system-map{display:flex;align-items:center;gap:8px;margin:4px 0 18px;padding:12px;border:1px solid var(--line);border-radius:16px;background:rgba(9,27,19,.78);overflow-x:auto}.node{flex:1;min-width:128px;padding:10px 12px;border:1px solid #2e5141;border-radius:11px;background:#10281f}.node small{display:block;color:#719283;margin-bottom:2px}.node strong{font-size:14px}.arrow{color:#56846d;font-weight:900}.node.trigger{border-color:#7a5c2d}.node.screen{border-color:#3f8060}.map-note{font-size:12px;color:#6f8e80;min-width:95px;text-align:center}
+    .lab{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:18px}.card{border:1px solid var(--line);background:linear-gradient(150deg,rgba(16,39,30,.94),rgba(8,24,17,.95));border-radius:22px;box-shadow:0 26px 70px rgba(0,0,0,.25)}.scope-card{padding:16px}.scope-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}.scope-title{display:flex;align-items:center;gap:10px}.scope-title h2{margin:0;font-size:17px}.led{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green)}.readout{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.chip{padding:5px 9px;border-radius:8px;background:#07140f;border:1px solid #28503d;color:#9ac5ae;font:700 12px ui-monospace,Consolas,monospace}.chip strong{color:#d5ffe4}
+    .screen-wrap{position:relative;aspect-ratio:16/8.7;min-height:340px;border-radius:16px;overflow:hidden;background:#020b07;border:1px solid #29543e;box-shadow:inset 0 0 45px #000,inset 0 0 9px rgba(101,255,165,.2)}.screen-wrap::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(170,255,202,.025) 0,rgba(170,255,202,.025) 1px,transparent 1px,transparent 4px);mix-blend-mode:screen}canvas{display:block;width:100%;height:100%}.scan-badge{position:absolute;left:14px;top:13px;z-index:2;padding:6px 9px;border-radius:8px;border:1px solid #28503d;background:rgba(1,11,6,.78);font-size:12px;color:#a0c4b0}.scan-badge b{color:var(--green)}
+    .strips{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.strip{border:1px solid #1e4232;border-radius:13px;background:#06140e;padding:8px 10px}.strip-head{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#8bab9c;margin-bottom:3px}.strip-head b{color:#cfebdc} .strip canvas{height:72px}
+    .controls{padding:18px;display:flex;flex-direction:column;gap:15px}.controls h2{font-size:17px;margin:0}.control-block{border-top:1px solid #1f4032;padding-top:14px}.control-block:first-of-type{border-top:0;padding-top:0}.label-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}.label-row label{font-size:13px;color:#aac3b7;font-weight:650}.value{font:800 13px ui-monospace,Consolas,monospace;color:var(--green)}input[type=range]{width:100%;accent-color:#52d98b}.ticks{display:flex;justify-content:space-between;color:#5f7e70;font-size:10px;margin-top:4px}.preset-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}button{font:700 13px inherit;border:1px solid #2d5542;background:#10281f;color:#b7d8c8;border-radius:10px;padding:9px 8px;cursor:pointer;transition:.18s ease}button:hover{transform:translateY(-1px);border-color:#56b17e;color:#e4fff0}button.active{background:#173d2c;border-color:var(--green);color:#caffdd;box-shadow:inset 0 0 0 1px rgba(104,246,162,.15)}.action{display:grid;grid-template-columns:1fr 1fr;gap:8px}.action button:first-child{background:var(--green);color:#05210f;border-color:var(--green)}
+    .switch{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#aac3b7;font-size:13px}.switch input{appearance:none;width:42px;height:23px;border-radius:999px;background:#294437;position:relative;cursor:pointer;transition:.2s}.switch input::after{content:"";position:absolute;width:17px;height:17px;border-radius:50%;left:3px;top:3px;background:#91aa9e;transition:.2s}.switch input:checked{background:#257a4b}.switch input:checked::after{left:22px;background:#d7ffe5}.status{padding:13px;border-radius:13px;background:#07160f;border:1px solid #294a3b}.status-kicker{font-size:11px;letter-spacing:.12em;color:#668778}.status strong{display:block;margin:5px 0;color:var(--green);font-size:21px}.status p{margin:0;color:#90aa9d;font-size:12px;line-height:1.65}.formula{font-family:"Cambria Math","Times New Roman",serif;font-size:16px;color:#d9f6e6}.formula span{color:var(--amber)}
+    .explain-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}.explain{padding:18px}.num{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid #3a6651;border-radius:9px;color:var(--green);font:800 12px ui-monospace,monospace}.explain h3{margin:14px 0 7px;font-size:16px}.explain p{margin:0;color:#8faa9d;font-size:13px;line-height:1.75}.answer{margin-top:18px;padding:22px;display:grid;grid-template-columns:160px 1fr;gap:20px;align-items:start}.answer-label{font-size:12px;color:var(--amber);letter-spacing:.16em;font-weight:800}.answer h2{margin:0 0 9px;font-size:21px}.answer p{margin:0;color:#a2bcae;line-height:1.8}.answer code{color:#caffdc;background:#06130d;border:1px solid #224535;padding:2px 6px;border-radius:6px}.sources{margin-top:18px;color:#6f8c7e;font-size:12px;line-height:1.8}.sources a{color:#93c9aa}
+    .led{animation:pulse 1.2s ease-in-out infinite}@keyframes pulse{50%{opacity:.35;box-shadow:0 0 3px var(--green)}}
+    @media(max-width:900px){.hero{grid-template-columns:1fr}.hero-fact{display:none}.lab{grid-template-columns:1fr}.controls{display:grid;grid-template-columns:1fr 1fr}.controls h2,.status{grid-column:1/-1}.explain-grid{grid-template-columns:1fr 1fr}.answer{grid-template-columns:1fr}.map-note{display:none}}
+    @media(max-width:620px){.shell{width:min(100% - 18px,1220px);padding-top:12px}.hero{padding:31px 3px 20px}.hero h1{font-size:2.65rem}.system-map{align-items:stretch}.node{min-width:116px}.screen-wrap{min-height:290px;aspect-ratio:auto;height:54vh;max-height:430px}.strips{grid-template-columns:1fr}.controls{display:flex}.explain-grid{grid-template-columns:1fr}.scope-top{align-items:flex-start}.readout{max-width:150px}.answer{padding:18px}}
+    @media(prefers-reduced-motion:reduce){button{transition:none}button:hover{transform:none}.led{animation:none}}
+  </style>
+</head>
+<body class="document-lab">
+  <main class="shell">
+    <a class="btn-home" href="/" aria-label="返回物理实验展厅">← 返回展厅</a>
+    <header class="hero">
+      <div><p class="eyebrow">Oscilloscope · Interactive Lab</p><h1>把时间，<span>画成波形</span></h1><p>输入电压控制光点的上下偏转，锯齿电压推动光点匀速横扫。只有每次扫描都从输入信号的同一相位开始，重复轨迹才会叠成一条稳定曲线。</p></div>
+      <div class="hero-fact"><b id="heroCycles">1.00</b>屏幕内的信号周期数<br><span>N = T<sub>扫描</sub> / T<sub>信号</sub></span></div>
+    </header>
+
+    <section class="system-map" aria-label="示波器工作原理框图">
+      <div class="node"><small>输入信号 u<sub>y</sub>(t)</small><strong>垂直放大器 → Y 偏转板</strong></div><span class="arrow">→</span>
+      <div class="node trigger"><small>同一输入取样</small><strong>触发 / 同步电路</strong></div><span class="arrow">→</span>
+      <div class="node"><small>锯齿电压 u<sub>x</sub>(t)</small><strong>时基发生器 → X 偏转板</strong></div><span class="arrow">→</span>
+      <div class="node screen"><small>x ∝ t，y ∝ u<sub>y</sub></small><strong>荧光屏合成轨迹</strong></div><div class="map-note">亮度来自<br>多次扫描余辉叠加</div>
+    </section>
+
+    <section class="lab">
+      <div class="card scope-card">
+        <div class="scope-top"><div class="scope-title"><span class="led"></span><h2>荧光屏 · XY 合成</h2></div><div class="readout"><span class="chip">CH1 <strong>1 V/div</strong></span><span class="chip">TIME <strong id="timeDiv">0.10 T/div</strong></span></div></div>
+        <div class="screen-wrap"><div class="scan-badge">电子束位置 · <b id="beamPercent">0%</b></div><canvas id="scope" tabindex="0" role="img" aria-label="示波器荧光屏动态轨迹，横向为扫描时间，纵向为正弦输入电压"></canvas></div>
+        <div class="strips">
+          <div class="strip"><div class="strip-head"><span>CH1 · 输入正弦电压</span><b>控制 Y 偏转</b></div><canvas id="signal" aria-hidden="true"></canvas></div>
+          <div class="strip"><div class="strip-head"><span>TIME BASE · 锯齿扫描电压</span><b>控制 X 偏转</b></div><canvas id="sweep" aria-hidden="true"></canvas></div>
+        </div>
+      </div>
+
+      <aside class="card controls">
+        <h2>时基与同步</h2>
+        <div class="control-block"><div class="label-row"><label for="ratio">扫描周期 / 信号周期</label><output class="value" id="ratioValue">1.00 T</output></div><input id="ratio" type="range" min="0.5" max="3" step="0.25" value="1"><div class="ticks"><span>0.5T</span><span>1T</span><span>2T</span><span>3T</span></div></div>
+        <div class="preset-row"><button class="active" data-ratio="1">题设① 相等</button><button data-ratio="2">题设② 两倍</button></div>
+        <div class="control-block"><div class="label-row"><label for="speed">演示速度</label><output class="value" id="speedValue">0.65×</output></div><input id="speed" type="range" min="0.2" max="1.6" step="0.05" value="0.65"></div>
+        <div class="control-block switch"><span>触发同步（锁定起始相位）</span><input id="trigger" type="checkbox" checked aria-label="触发同步"></div>
+        <div class="action"><button id="play">暂停</button><button id="reset">复位</button></div>
+        <div class="status" aria-live="polite"><span class="status-kicker">CURRENT RESULT</span><strong id="resultTitle">稳定显示 1 个完整周期</strong><p id="resultText">扫描周期与信号周期相等，且每次扫描都从相同相位起步。</p></div>
+        <div class="formula">x(t) ∝ u<sub>x</sub>(t)，y(t) ∝ <span>sin(2πt/T)</span></div>
+      </aside>
+    </section>
+
+    <section class="explain-grid">
+      <article class="card explain"><span class="num">01</span><h3>上下：电压变成位移</h3><p>输入信号经垂直放大后加到 Y 偏转板。正电压让光点上移，负电压让光点下移，所以屏幕高度忠实表示瞬时电压。</p></article>
+      <article class="card explain"><span class="num">02</span><h3>左右：锯齿把时间展开</h3><p>扫描电压在一个周期内近似线性上升，使光点匀速从左到右；快速回扫时电子束熄灭，避免画出干扰线。</p></article>
+      <article class="card explain"><span class="num">03</span><h3>稳定：每次从同一相位开始</h3><p>触发电路在相同电平和斜率处启动扫描。若起点相位漂移，许多不同轨迹叠加，波形就会滚动或发虚。</p></article>
+    </section>
+
+    <section class="card answer"><div class="answer-label">题目结论</div><div><h2>完整波形的条件：整周期扫描 + 同步起扫</h2><p>当 <code>T扫描 = T信号</code> 且起始时刻相同时，荧光屏显示一条完整、稳定的正弦曲线；把扫描周期调为原来的两倍，即 <code>T扫描 = 2T信号</code>，屏幕会显示一条包含 <strong>两个完整周期</strong> 的稳定正弦曲线。</p></div></section>
+    <footer class="sources">原理参考：<a href="https://www.tek.com/en/documents/primer/oscilloscope-systems-and-controls" target="_blank" rel="noopener noreferrer">Tektronix · Oscilloscope Systems and Controls</a>；<a href="https://download.tek.com/manual/071108901web.pdf" target="_blank" rel="noopener noreferrer">Tektronix · Introduction to Oscilloscopes and Probes</a>。本页采用教学化的理想 CRT 扫描模型。</footer>
+  </main>
+
+  <script>
+    (()=>{
+      const $=id=>document.getElementById(id),scope=$('scope'),signal=$('signal'),sweep=$('sweep');
+      const canvases=[scope,signal,sweep],ratio=$('ratio'),speed=$('speed'),trigger=$('trigger'),playBtn=$('play');
+      let ratioValue=1,speedValue=.65,playing=true,progress=0,freePhase=0,last=performance.now(),raf=0;
+      // 支持直接以 file:// 打开：动画计时内置，不依赖站点公共脚本。
+      function frameScale(now,previous){const elapsed=Math.max(0,now-previous);return Math.min(elapsed/(1000/60),3)}
+      function fit(c){const r=c.getBoundingClientRect(),d=Math.max(1,devicePixelRatio||1);if(c.width!==Math.round(r.width*d)||c.height!==Math.round(r.height*d)){c.width=Math.round(r.width*d);c.height=Math.round(r.height*d)}const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);return{x,w:r.width,h:r.height}}
+      function path(ctx,fn,x0,x1,step,color,width=2,alpha=1){ctx.save();ctx.beginPath();for(let x=x0;x<=x1;x+=step){const y=fn(x);x===x0?ctx.moveTo(x,y):ctx.lineTo(x,y)}ctx.strokeStyle=color;ctx.globalAlpha=alpha;ctx.lineWidth=width;ctx.lineJoin='round';ctx.lineCap='round';ctx.stroke();ctx.restore()}
+      function grid(ctx,w,h,cols=10,rows=8){ctx.save();ctx.strokeStyle='rgba(105,226,153,.16)';ctx.lineWidth=1;for(let i=0;i<=cols;i++){const x=i*w/cols;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}for(let i=0;i<=rows;i++){const y=i*h/rows;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}ctx.strokeStyle='rgba(152,255,190,.32)';ctx.beginPath();ctx.moveTo(w/2,0);ctx.lineTo(w/2,h);ctx.moveTo(0,h/2);ctx.lineTo(w,h/2);ctx.stroke();ctx.restore()}
+      function phaseAtStart(){return trigger.checked?0:freePhase}
+      function drawScope(){const {x:ctx,w,h}=fit(scope);ctx.clearRect(0,0,w,h);grid(ctx,w,h);const pad=12,usable=w-pad*2,mid=h/2,amp=h*.31,end=pad+usable*progress,p0=phaseAtStart();
+        ctx.save();ctx.shadowColor='#53ff94';ctx.shadowBlur=15;path(ctx,x=>mid-amp*Math.sin(p0+2*Math.PI*ratioValue*(x-pad)/usable),pad,end,1.25,'#8affb2',3.1,.95);ctx.restore();
+        for(let i=1;i<=3;i++)path(ctx,x=>mid-amp*Math.sin(p0+2*Math.PI*ratioValue*(x-pad)/usable),pad,end,2,'#4dff8e',1,0.1/i);
+        const bx=end,by=mid-amp*Math.sin(p0+2*Math.PI*ratioValue*progress);ctx.save();ctx.fillStyle='#eafff0';ctx.shadowColor='#71ffa4';ctx.shadowBlur=18;ctx.beginPath();ctx.arc(bx,by,4.2,0,Math.PI*2);ctx.fill();ctx.restore();
+        ctx.save();ctx.fillStyle='rgba(152,211,177,.68)';ctx.font='11px ui-monospace,Consolas,monospace';ctx.fillText('0 V',6,mid-7);ctx.fillText(`${ratioValue.toFixed(2)} T`,w-62,h-10);ctx.restore();$('beamPercent').textContent=`${Math.round(progress*100)}%`;
+      }
+      function drawSignal(){const {x:ctx,w,h}=fit(signal);ctx.clearRect(0,0,w,h);const mid=h/2,amp=h*.31,p0=phaseAtStart();ctx.strokeStyle='rgba(104,183,255,.15)';ctx.beginPath();ctx.moveTo(0,mid);ctx.lineTo(w,mid);ctx.stroke();path(ctx,x=>mid-amp*Math.sin(p0+2*Math.PI*ratioValue*x/w),0,w,1,'#68b7ff',2);const x=w*progress,y=mid-amp*Math.sin(p0+2*Math.PI*ratioValue*progress);ctx.fillStyle='#d9edff';ctx.beginPath();ctx.arc(x,y,3.2,0,Math.PI*2);ctx.fill()}
+      function drawSweep(){const {x:ctx,w,h}=fit(sweep);ctx.clearRect(0,0,w,h);const top=12,bottom=h-12;ctx.strokeStyle='rgba(255,189,89,.14)';ctx.beginPath();ctx.moveTo(0,h/2);ctx.lineTo(w,h/2);ctx.stroke();path(ctx,x=>bottom-(bottom-top)*(x/w),0,w-2,1,'#ffbd59',2);ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(255,189,89,.55)';ctx.beginPath();ctx.moveTo(w*progress,top);ctx.lineTo(w*progress,bottom);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#ffe0a6';ctx.beginPath();ctx.arc(w*progress,bottom-(bottom-top)*progress,3.2,0,Math.PI*2);ctx.fill()}
+      function updateText(){ratioValue=+ratio.value;speedValue=+speed.value;$('ratioValue').textContent=`${ratioValue.toFixed(2)} T`;$('speedValue').textContent=`${speedValue.toFixed(2)}×`;$('heroCycles').textContent=ratioValue.toFixed(2);$('timeDiv').textContent=`${(ratioValue/10).toFixed(2)} T/div`;document.querySelectorAll('[data-ratio]').forEach(b=>b.classList.toggle('active',+b.dataset.ratio===ratioValue));let title,text;if(!trigger.checked){title='起始相位漂移：波形不稳定';text='关闭触发后，每次扫描的起点逐渐变化，轨迹会滚动并难以重合。'}else if(ratioValue===1){title='稳定显示 1 个完整周期';text='扫描周期与信号周期相等，且每次扫描都从相同相位起步。'}else if(ratioValue===2){title='稳定显示 2 个完整周期';text='屏幕横向展开的时间加倍，同一宽度内正好容纳两个正弦周期。'}else{title=`稳定显示 ${ratioValue.toFixed(2)} 个周期`;text='触发锁定了起始相位；屏幕内周期数等于扫描周期与信号周期之比。'}$('resultTitle').textContent=title;$('resultText').textContent=text}
+      function draw(){drawScope();drawSignal();drawSweep()}
+      function schedule(){if(playing&&!raf){last=performance.now();raf=requestAnimationFrame(frame)}}
+      function frame(now){raf=0;if(!playing)return;const dt=frameScale(now,last);last=now;const prev=progress;progress=(progress+dt/60*.48*speedValue)%1;if(progress<prev&&!trigger.checked)freePhase=(freePhase+.62)%(2*Math.PI);draw();raf=requestAnimationFrame(frame)}
+      function setPlaying(v){playing=v;playBtn.textContent=playing?'暂停':'继续';if(playing)schedule();else if(raf){cancelAnimationFrame(raf);raf=0}}
+      ratio.addEventListener('input',()=>{progress=0;updateText();draw()});speed.addEventListener('input',()=>{updateText()});trigger.addEventListener('change',()=>{progress=0;freePhase=0;updateText();draw()});document.querySelectorAll('[data-ratio]').forEach(b=>b.addEventListener('click',()=>{ratio.value=b.dataset.ratio;progress=0;updateText();draw()}));playBtn.addEventListener('click',()=>setPlaying(!playing));$('reset').addEventListener('click',()=>{ratio.value=1;speed.value=.65;trigger.checked=true;progress=0;freePhase=0;updateText();setPlaying(true);draw()});scope.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();setPlaying(!playing)}});if('ResizeObserver'in window)new ResizeObserver(draw).observe(scope.parentElement);else addEventListener('resize',draw);updateText();setPlaying(true);draw();
+    })();
+  </script>
+</body>
+</html>
