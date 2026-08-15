@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450" role="img" aria-labelledby="title desc">
+  <title id="title">双凸透镜组合成像动态演示封面</title><desc id="desc">矩形发光孔经两片贴合凸透镜在屏上形成等大倒立实像</desc>
+  <defs>
+    <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#112d49"/><stop offset="1" stop-color="#06101d"/></linearGradient>
+    <linearGradient id="lens" x2="1"><stop stop-color="#38bdf8" stop-opacity=".15"/><stop offset=".5" stop-color="#d8f3ff" stop-opacity=".85"/><stop offset="1" stop-color="#38bdf8" stop-opacity=".18"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="800" height="450" fill="url(#bg)"/><circle cx="400" cy="210" r="185" fill="#0ea5e9" opacity=".055"/><path d="M54 225H746" stroke="#62809b" stroke-dasharray="9 9"/>
+  <rect x="88" y="125" width="28" height="142" rx="4" fill="#fbbf24" fill-opacity=".24" stroke="#fbbf24" stroke-width="4"/><circle cx="98" cy="143" r="5" fill="#fff2ae"/>
+  <path d="M392 83Q345 225 392 367Q439 225 392 83Z" fill="url(#lens)" stroke="#38bdf8" stroke-width="4"/><path d="M414 83Q367 225 414 367Q461 225 414 83Z" fill="url(#lens)" stroke="#38bdf8" stroke-width="4"/>
+  <path d="M104 125L403 225L696 367M104 125H403L696 325M104 125L403 325L696 325" fill="none" stroke-linecap="round" stroke-width="4" filter="url(#glow)"/><path d="M104 125L403 225L696 367" fill="none" stroke="#fde047" stroke-width="3"/><path d="M104 125H403L696 325" fill="none" stroke="#38bdf8" stroke-width="3"/><path d="M104 125L403 325L696 325" fill="none" stroke="#fb923c" stroke-width="3"/>
+  <path d="M708 83V367" stroke="#cbd5e1" stroke-width="9"/><path d="M682 325H706" stroke="#4ade80" stroke-width="5"/><path d="M694 325V367M694 367l-9-14m9 14 9-14" fill="none" stroke="#4ade80" stroke-width="5"/>
+  <g font-family="Microsoft YaHei,Segoe UI,sans-serif"><text x="48" y="60" fill="#fff" font-size="34" font-weight="700">两片凸透镜为何成等大倒像？</text><text x="50" y="405" fill="#9edfff" font-size="22">F = f/2 · 物、屏均在 2F · m = −1</text><text x="400" y="61" fill="#7dd3fc" font-size="18" text-anchor="middle">两片贴合</text><text x="712" y="61" fill="#cbd5e1" font-size="18" text-anchor="middle">屏</text></g>
+</svg>
