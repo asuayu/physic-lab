@@ -82,7 +82,7 @@ Worker 静态资源配置位于 `wrangler.jsonc`，工作流配置位于 `.githu
 - 留言前端：`public/lab-comments.js` 与 `public/lab-comments.css`
 - 管理模式：在实验页地址后添加 `?comments-admin=1`，输入 `COMMENTS_ADMIN_TOKEN` 后即可删除留言。
 
-首次部署时 Wrangler 会为 `COMMENTS_DB` 绑定自动创建 D1 数据库；工作流随后执行迁移。若尚未配置 Turnstile 密钥，留言仍可依靠蜜罐、重复检测和 D1 限流运行；同时配置 Site Key 与 Secret Key 后，服务端会自动强制 Turnstile 验证。
+`COMMENTS_DB` 已绑定 Cloudflare 上的 `physics-comments` D1 数据库；工作流会在部署后自动执行迁移。若尚未配置 Turnstile 密钥，留言仍可依靠蜜罐、重复检测和 D1 限流运行；同时配置 Site Key 与 Secret Key 后，服务端会自动强制 Turnstile 验证。
 
 本地测试可复制 `.dev.vars.example` 为 `.dev.vars`，然后执行：
 

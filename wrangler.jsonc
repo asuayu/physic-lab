@@ -10,7 +10,9 @@
   },
   "d1_databases": [
     {
-      "binding": "COMMENTS_DB"
+      "binding": "COMMENTS_DB",
+      "database_name": "physics-comments",
+      "database_id": "c5029797-1d1a-471a-ac80-54c55fc90d69"
     }
   ]
 }
