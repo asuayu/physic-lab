@@ -86,7 +86,7 @@ jobs:
       - name: Verify comments API
         if: env.CLOUDFLARE_API_TOKEN != ''
         shell: bash
-        run: curl --fail --show-error --retry 5 --retry-delay 3 https://hunag-physics.top/api/comments/health
+        run: curl --fail --show-error --retry 5 --retry-delay 3 https://huang-physics.top/api/comments/health
 
       - name: Cloudflare token is not configured
         if: env.CLOUDFLARE_API_TOKEN == ''
