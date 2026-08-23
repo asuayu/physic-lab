@@ -1,0 +1,7 @@
+# Cloudflare 官方测试密钥，仅用于本地开发，切勿用于生产。
+TURNSTILE_SITE_KEY="1x00000000000000000000AA"
+TURNSTILE_SECRET_KEY="1x0000000000000000000000000000000AA"
+
+# 本地管理员删除令牌和匿名客户端哈希盐；生产环境请使用独立强随机值。
+COMMENTS_ADMIN_TOKEN="local-admin-token-change-me"
+COMMENTS_HASH_SALT="local-hash-salt-change-me"

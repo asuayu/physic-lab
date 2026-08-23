@@ -56,13 +56,38 @@
 | `npm run validate` | 依次执行内容检查和生产构建 |
 | `npm run build` | 编译打包你的静态实验室到 `./dist/` 目录 |
 | `npm run preview` | 部署前本地预览打包结果 |
+| `npm run comments:migrate:local` | 在本地 D1 中应用留言表迁移 |
+| `npm run comments:dev` | 启动包含静态资源、留言 API 和本地 D1 的 Worker |
 
 ## 自动部署
 
-推送到 GitHub 仓库的 `main` 分支后，GitHub Actions 会执行内容检查和生产构建，随后将 `dist` 作为静态资源自动部署到 Cloudflare Workers 的 `physics` 项目。
+推送到 GitHub 仓库的 `main` 分支后，GitHub Actions 会执行完整校验和生产构建，随后将静态资源与留言 API 一并部署到 Cloudflare Workers 的 `physics` 项目，并自动应用 D1 数据库迁移。
 
 仓库需要配置 GitHub Actions Secret：
 
-- `CLOUDFLARE_API_TOKEN`：具有目标账户 `Workers Scripts: Edit` 权限的 Cloudflare API Token。
+- `CLOUDFLARE_API_TOKEN`：至少具有目标账户 `Workers Scripts: Edit` 和 `D1: Edit` 权限的 Cloudflare API Token。
+- `TURNSTILE_SITE_KEY`：Turnstile 小组件的公开 Site Key。
+- `TURNSTILE_SECRET_KEY`：Turnstile 服务端验证密钥。
+- `COMMENTS_ADMIN_TOKEN`：管理员删除留言时使用的强随机令牌。
+- `COMMENTS_HASH_SALT`：对匿名访客来源做不可逆限流哈希时使用的强随机盐。
 
 Worker 静态资源配置位于 `wrangler.jsonc`，工作流配置位于 `.github/workflows/deploy-cloudflare.yml`。Cloudflare Account ID 和项目名不是凭据，已直接记录在工作流中；API Token 不得写入仓库。
+
+## 互动留言
+
+所有引入 `/lab-runtime.js` 的独立实验页都会自动加载右下角留言入口。留言按页面路径隔离，支持匿名昵称、回复、分页、重复提交检查、分钟/每日限流、Turnstile 服务端验证和管理员软删除。
+
+- Worker API：`worker/index.js`
+- D1 迁移：`migrations/`
+- 留言前端：`public/lab-comments.js` 与 `public/lab-comments.css`
+- 管理模式：在实验页地址后添加 `?comments-admin=1`，输入 `COMMENTS_ADMIN_TOKEN` 后即可删除留言。
+
+首次部署时 Wrangler 会为 `COMMENTS_DB` 绑定自动创建 D1 数据库；工作流随后执行迁移。若尚未配置 Turnstile 密钥，留言仍可依靠蜜罐、重复检测和 D1 限流运行；同时配置 Site Key 与 Secret Key 后，服务端会自动强制 Turnstile 验证。
+
+本地测试可复制 `.dev.vars.example` 为 `.dev.vars`，然后执行：
+
+```powershell
+npm run build
+npm run comments:migrate:local
+npm run comments:dev
+```

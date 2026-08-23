@@ -8,10 +8,18 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "check:worker": "node --check worker/index.js && node --check public/lab-comments.js && node --check public/lab-runtime.js",
     "check": "node scripts/check-content.mjs",
-    "validate": "npm run check && npm run build",
+    "validate": "npm run check:worker && npm run check && npm run build",
+    "comments:dev": "wrangler dev",
+    "comments:migrate:local": "wrangler d1 migrations apply COMMENTS_DB --local",
+    "comments:migrate:remote": "wrangler d1 migrations apply COMMENTS_DB --remote",
+    "comments:test:api": "node scripts/test-comments-api.mjs",
     "preview": "astro preview",
     "astro": "astro"
+  },
+  "devDependencies": {
+    "wrangler": "^4.125.0"
   },
   "dependencies": {
     "astro": "^7.1.6"
