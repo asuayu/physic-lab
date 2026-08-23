@@ -1,0 +1,617 @@
+<!doctype html>
+<html
+    lang="zh-CN"
+    data-comments-title="动画需求留言板"
+    data-comments-subtitle="告诉我你想看懂的现象、题目或课堂难点"
+    data-comments-placeholder="例如：希望增加动量守恒碰撞动画，可调质量和初速度，并显示速度—时间图像……"
+    data-comments-launcher="提需求"
+>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#07131f" />
+        <meta
+            name="description"
+            content="Physics Lab 动画需求留言板与课堂实用工具集合。"
+        />
+        <title>动画需求与课堂工具 | Physics Lab</title>
+        <link rel="stylesheet" href="/lab-common.css" />
+        <style>
+            :root {
+                color-scheme: dark;
+                font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+                background: #07131f;
+                color: #e6f6ff;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            html {
+                min-height: 100%;
+                background: #07131f;
+            }
+
+            body.document-lab {
+                min-height: 100vh;
+                margin: 0;
+                overflow-x: hidden;
+                background:
+                    radial-gradient(circle at 12% 8%, rgba(20, 184, 166, 0.13), transparent 30rem),
+                    radial-gradient(circle at 88% 22%, rgba(56, 189, 248, 0.1), transparent 28rem),
+                    #07131f;
+            }
+
+            #ideaCanvas {
+                position: fixed;
+                inset: 0;
+                z-index: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                opacity: 0.5;
+            }
+
+            .page-shell {
+                position: relative;
+                z-index: 1;
+                width: min(1120px, calc(100% - 36px));
+                margin: 0 auto;
+                padding: 24px 0 72px;
+            }
+
+            .topbar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 20px;
+                margin-bottom: 58px;
+            }
+
+            .brand {
+                display: flex;
+                align-items: center;
+                gap: 11px;
+                color: #ecfeff;
+                font-weight: 750;
+                letter-spacing: 0.08em;
+            }
+
+            .brand-mark {
+                width: 34px;
+                height: 34px;
+                display: grid;
+                place-items: center;
+                border: 1px solid rgba(94, 234, 212, 0.52);
+                border-radius: 10px;
+                background: rgba(13, 148, 136, 0.16);
+                color: #5eead4;
+                box-shadow: inset 0 0 18px rgba(45, 212, 191, 0.12);
+            }
+
+            .home-link {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                min-height: 42px;
+                padding: 0 15px;
+                border: 1px solid #284357;
+                border-radius: 11px;
+                color: #b8d4e4;
+                background: rgba(8, 25, 39, 0.72);
+                text-decoration: none;
+                transition: border-color 160ms ease, color 160ms ease, transform 160ms ease;
+            }
+
+            .home-link:hover {
+                color: #f0fdfa;
+                border-color: #2dd4bf;
+                transform: translateY(-1px);
+            }
+
+            .hero {
+                display: grid;
+                grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.55fr);
+                gap: 48px;
+                align-items: center;
+                margin-bottom: 70px;
+            }
+
+            .eyebrow {
+                display: inline-flex;
+                align-items: center;
+                gap: 9px;
+                margin: 0 0 18px;
+                color: #5eead4;
+                font-size: 0.84rem;
+                font-weight: 750;
+                letter-spacing: 0.14em;
+                text-transform: uppercase;
+            }
+
+            .eyebrow::before {
+                content: "";
+                width: 24px;
+                height: 2px;
+                background: currentColor;
+            }
+
+            h1 {
+                max-width: 760px;
+                margin: 0;
+                color: #f4fbff;
+                font-size: clamp(2.65rem, 7vw, 5.4rem);
+                line-height: 0.98;
+                letter-spacing: -0.055em;
+            }
+
+            .hero-copy {
+                max-width: 680px;
+                margin: 24px 0 0;
+                color: #9bb7c8;
+                font-size: clamp(1rem, 2vw, 1.16rem);
+                line-height: 1.8;
+            }
+
+            .hero-actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+                margin-top: 30px;
+            }
+
+            .action-button,
+            .action-link {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 9px;
+                min-height: 48px;
+                padding: 0 20px;
+                border-radius: 12px;
+                font: inherit;
+                font-weight: 750;
+                text-decoration: none;
+                cursor: pointer;
+                transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+            }
+
+            .action-button {
+                border: 1px solid #5eead4;
+                color: #052e2b;
+                background: #5eead4;
+                box-shadow: 0 14px 38px rgba(20, 184, 166, 0.2);
+            }
+
+            .action-link {
+                border: 1px solid #2b4659;
+                color: #d6ecf7;
+                background: rgba(12, 31, 46, 0.78);
+            }
+
+            .action-button:hover,
+            .action-link:hover {
+                transform: translateY(-2px);
+            }
+
+            .action-link:hover {
+                border-color: #38bdf8;
+            }
+
+            .idea-orbit {
+                width: min(100%, 310px);
+                aspect-ratio: 1;
+                margin-inline: auto;
+                display: grid;
+                place-items: center;
+                position: relative;
+            }
+
+            .idea-core {
+                width: 116px;
+                aspect-ratio: 1;
+                display: grid;
+                place-items: center;
+                border: 1px solid rgba(94, 234, 212, 0.65);
+                border-radius: 34px;
+                color: #5eead4;
+                background: rgba(13, 148, 136, 0.13);
+                box-shadow: 0 0 70px rgba(45, 212, 191, 0.18), inset 0 0 30px rgba(45, 212, 191, 0.12);
+                font-size: 3.5rem;
+                transform: rotate(-8deg);
+            }
+
+            .orbit-ring {
+                position: absolute;
+                inset: 22px;
+                border: 1px dashed rgba(125, 211, 252, 0.3);
+                border-radius: 50%;
+                animation: orbit 18s linear infinite;
+            }
+
+            .orbit-ring::before,
+            .orbit-ring::after {
+                content: "";
+                position: absolute;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: #38bdf8;
+                box-shadow: 0 0 18px #38bdf8;
+            }
+
+            .orbit-ring::before {
+                top: 24px;
+                right: 24px;
+            }
+
+            .orbit-ring::after {
+                bottom: 38px;
+                left: 9px;
+                background: #5eead4;
+                box-shadow: 0 0 18px #5eead4;
+            }
+
+            @keyframes orbit {
+                to { transform: rotate(360deg); }
+            }
+
+            .section-heading {
+                display: flex;
+                align-items: end;
+                justify-content: space-between;
+                gap: 20px;
+                margin-bottom: 22px;
+            }
+
+            .section-heading h2 {
+                margin: 0;
+                color: #f0f9ff;
+                font-size: clamp(1.55rem, 3vw, 2.15rem);
+            }
+
+            .section-heading p {
+                max-width: 520px;
+                margin: 0;
+                color: #7897aa;
+                line-height: 1.6;
+                text-align: right;
+            }
+
+            .brief-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 16px;
+                margin-bottom: 68px;
+            }
+
+            .brief-card {
+                min-height: 180px;
+                padding: 24px;
+                border: 1px solid #223e51;
+                border-radius: 18px;
+                background: linear-gradient(145deg, rgba(16, 39, 55, 0.9), rgba(8, 25, 39, 0.86));
+            }
+
+            .brief-number {
+                display: grid;
+                place-items: center;
+                width: 34px;
+                height: 34px;
+                margin-bottom: 28px;
+                border-radius: 50%;
+                color: #052e2b;
+                background: #5eead4;
+                font-size: 0.85rem;
+                font-weight: 800;
+            }
+
+            .brief-card h3 {
+                margin: 0 0 9px;
+                color: #e5f7ff;
+                font-size: 1.08rem;
+            }
+
+            .brief-card p {
+                margin: 0;
+                color: #89a8ba;
+                line-height: 1.65;
+            }
+
+            .tool-grid {
+                display: grid;
+                grid-template-columns: minmax(0, 1.6fr) minmax(260px, 0.7fr);
+                gap: 18px;
+            }
+
+            .tool-card,
+            .future-card {
+                border: 1px solid #29475b;
+                border-radius: 22px;
+                background: rgba(10, 29, 43, 0.88);
+            }
+
+            .tool-card {
+                display: grid;
+                grid-template-columns: 170px minmax(0, 1fr);
+                min-height: 250px;
+                overflow: hidden;
+                color: inherit;
+                text-decoration: none;
+                transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+            }
+
+            .tool-card:hover {
+                transform: translateY(-4px);
+                border-color: #2dd4bf;
+                box-shadow: 0 20px 44px rgba(0, 0, 0, 0.25);
+            }
+
+            .tool-preview {
+                display: grid;
+                place-items: center;
+                position: relative;
+                background:
+                    radial-gradient(circle, transparent 31%, rgba(94, 234, 212, 0.22) 32%, transparent 33%),
+                    repeating-conic-gradient(from -12deg, #0f766e 0 24deg, #164e63 24deg 48deg);
+            }
+
+            .tool-preview::after {
+                content: "";
+                width: 34px;
+                height: 34px;
+                border: 6px solid #e6fffb;
+                border-radius: 50%;
+                background: #14b8a6;
+                box-shadow: 0 0 24px rgba(94, 234, 212, 0.5);
+            }
+
+            .tool-copy {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                padding: 30px;
+            }
+
+            .tool-kicker {
+                color: #5eead4;
+                font-size: 0.78rem;
+                font-weight: 800;
+                letter-spacing: 0.12em;
+            }
+
+            .tool-copy h3 {
+                margin: 11px 0;
+                color: #f0fdfa;
+                font-size: 1.6rem;
+            }
+
+            .tool-copy p {
+                margin: 0;
+                color: #8eabba;
+                line-height: 1.7;
+            }
+
+            .tool-enter {
+                margin-top: 22px;
+                color: #67e8f9;
+                font-weight: 700;
+            }
+
+            .future-card {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                padding: 30px;
+                border-style: dashed;
+            }
+
+            .future-card span {
+                width: 46px;
+                height: 46px;
+                display: grid;
+                place-items: center;
+                border: 1px solid #35566b;
+                border-radius: 14px;
+                color: #7dd3fc;
+                font-size: 1.5rem;
+            }
+
+            .future-card h3 {
+                margin: 18px 0 8px;
+                color: #dff6ff;
+            }
+
+            .future-card p {
+                margin: 0;
+                color: #7795a7;
+                line-height: 1.65;
+            }
+
+            .privacy-note {
+                margin: 30px 0 0;
+                color: #607f92;
+                font-size: 0.88rem;
+                text-align: center;
+            }
+
+            @media (max-width: 820px) {
+                .topbar { margin-bottom: 42px; }
+                .hero { grid-template-columns: 1fr; gap: 24px; }
+                .idea-orbit { width: 220px; }
+                .brief-grid { grid-template-columns: 1fr; }
+                .brief-card { min-height: 0; }
+                .brief-number { margin-bottom: 18px; }
+                .tool-grid { grid-template-columns: 1fr; }
+            }
+
+            @media (max-width: 580px) {
+                .page-shell { width: min(100% - 24px, 1120px); padding-top: 14px; }
+                .brand { font-size: 0.88rem; }
+                .home-link { padding: 0 12px; }
+                .home-link span { display: none; }
+                .hero { margin-bottom: 52px; }
+                h1 { font-size: clamp(2.45rem, 15vw, 4rem); }
+                .section-heading { display: block; }
+                .section-heading p { margin-top: 8px; text-align: left; }
+                .tool-card { grid-template-columns: 1fr; }
+                .tool-preview { min-height: 150px; }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .orbit-ring { animation: none; }
+            }
+        </style>
+    </head>
+    <body class="document-lab">
+        <canvas id="ideaCanvas" aria-hidden="true"></canvas>
+        <div class="page-shell">
+            <header class="topbar">
+                <div class="brand"><span class="brand-mark">φ</span> PHYSICS LAB</div>
+                <a class="home-link btn-home" href="/"><span>返回展厅</span><b aria-hidden="true">⌂</b></a>
+            </header>
+
+            <main>
+                <section class="hero" aria-labelledby="page-title">
+                    <div>
+                        <p class="eyebrow">Ideas &amp; classroom tools</p>
+                        <h1 id="page-title">你的想法，可能就是下一个动画。</h1>
+                        <p class="hero-copy">
+                            把难讲清、难想象的物理过程留在这里。描述知识点、困惑和希望调节的参数，我会据此规划新的互动演示；这里也会持续收纳课堂中真正好用的小工具。
+                        </p>
+                        <div class="hero-actions">
+                            <button class="action-button" id="openComments" type="button">💬 提交动画需求</button>
+                            <a class="action-link" href="#tools">查看课堂工具 ↓</a>
+                        </div>
+                    </div>
+                    <div class="idea-orbit" aria-hidden="true">
+                        <div class="orbit-ring"></div>
+                        <div class="idea-core">✦</div>
+                    </div>
+                </section>
+
+                <section aria-labelledby="request-heading">
+                    <div class="section-heading">
+                        <h2 id="request-heading">怎样留言更容易做成动画？</h2>
+                        <p>不需要写专业需求文档，三句话就能让想法足够清楚。</p>
+                    </div>
+                    <div class="brief-grid">
+                        <article class="brief-card">
+                            <span class="brief-number">01</span>
+                            <h3>说清知识点</h3>
+                            <p>例如“动量守恒中的完全非弹性碰撞”或“磁场中粒子出界范围”。</p>
+                        </article>
+                        <article class="brief-card">
+                            <span class="brief-number">02</span>
+                            <h3>指出最难理解的地方</h3>
+                            <p>是方向判断、临界条件、图像变化，还是两个参考系之间的关系？</p>
+                        </article>
+                        <article class="brief-card">
+                            <span class="brief-number">03</span>
+                            <h3>列出希望调节的量</h3>
+                            <p>比如质量、速度、角度、场强，并说明希望同步显示哪些公式或曲线。</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section id="tools" aria-labelledby="tools-heading">
+                    <div class="section-heading">
+                        <h2 id="tools-heading">课堂工具</h2>
+                        <p>轻量、直接打开即可使用，不上传名单到服务器。</p>
+                    </div>
+                    <div class="tool-grid">
+                        <a class="tool-card" href="/课堂点名系统.html" target="_blank" rel="noopener noreferrer">
+                            <div class="tool-preview" aria-hidden="true"></div>
+                            <div class="tool-copy">
+                                <span class="tool-kicker">已上线 · 随机抽取</span>
+                                <h3>课堂转盘点名</h3>
+                                <p>粘贴名单或导入 TXT，使用公平权重和近期回避机制抽取学生，支持空格启动与全屏展示。</p>
+                                <span class="tool-enter">打开工具 →</span>
+                            </div>
+                        </a>
+                        <div class="future-card">
+                            <span aria-hidden="true">＋</span>
+                            <h3>下一件工具由你决定</h3>
+                            <p>计时器、课堂分组器、答题抽签或其他想法，都可以通过右下角“提需求”留言。</p>
+                        </div>
+                    </div>
+                    <p class="privacy-note">留言会公开展示，请不要填写学生姓名、联系方式等个人信息。</p>
+                </section>
+            </main>
+        </div>
+
+        <script>
+            const canvas = document.getElementById("ideaCanvas");
+            const context = canvas.getContext("2d");
+            const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+            let width = 0;
+            let height = 0;
+            let points = [];
+
+            function resizeCanvas() {
+                const ratio = Math.min(devicePixelRatio || 1, 2);
+                width = innerWidth;
+                height = innerHeight;
+                canvas.width = Math.round(width * ratio);
+                canvas.height = Math.round(height * ratio);
+                context.setTransform(ratio, 0, 0, ratio, 0, 0);
+                points = Array.from({ length: Math.min(42, Math.max(18, Math.floor(width / 32))) }, () => ({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    vx: (Math.random() - 0.5) * 0.12,
+                    vy: (Math.random() - 0.5) * 0.12,
+                }));
+            }
+
+            function drawNetwork() {
+                context.clearRect(0, 0, width, height);
+                for (const point of points) {
+                    if (!reduceMotion) {
+                        point.x = (point.x + point.vx + width) % width;
+                        point.y = (point.y + point.vy + height) % height;
+                    }
+                    context.fillStyle = "rgba(94, 234, 212, 0.24)";
+                    context.beginPath();
+                    context.arc(point.x, point.y, 1.4, 0, Math.PI * 2);
+                    context.fill();
+                }
+                for (let i = 0; i < points.length; i += 1) {
+                    for (let j = i + 1; j < points.length; j += 1) {
+                        const dx = points[i].x - points[j].x;
+                        const dy = points[i].y - points[j].y;
+                        const distance = Math.hypot(dx, dy);
+                        if (distance < 118) {
+                            context.strokeStyle = `rgba(56, 189, 248, ${0.08 * (1 - distance / 118)})`;
+                            context.beginPath();
+                            context.moveTo(points[i].x, points[i].y);
+                            context.lineTo(points[j].x, points[j].y);
+                            context.stroke();
+                        }
+                    }
+                }
+                if (!reduceMotion) requestAnimationFrame(drawNetwork);
+            }
+
+            function openComments() {
+                let attempts = 0;
+                const tryOpen = () => {
+                    const launcher = document.querySelector(".pl-comments-launcher");
+                    if (launcher) {
+                        launcher.click();
+                        return;
+                    }
+                    attempts += 1;
+                    if (attempts < 30) setTimeout(tryOpen, 100);
+                };
+                tryOpen();
+            }
+
+            addEventListener("resize", resizeCanvas);
+            document.getElementById("openComments").addEventListener("click", openComments);
+            resizeCanvas();
+            drawNetwork();
+        </script>
+        <script src="/lab-runtime.js" defer></script>
+    </body>
+</html>

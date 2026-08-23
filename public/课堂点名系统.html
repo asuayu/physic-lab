@@ -1,0 +1,749 @@
+<!doctype html>
+<html
+    lang="zh-CN"
+    data-comments-title="课堂工具留言"
+    data-comments-subtitle="反馈点名工具问题，或建议下一件课堂小工具"
+    data-comments-placeholder="请描述使用中遇到的问题，或希望增加的课堂功能……"
+>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#07131f" />
+        <meta name="description" content="支持粘贴或导入名单的课堂随机转盘点名工具。" />
+        <title>课堂转盘点名 | Physics Lab</title>
+        <link rel="stylesheet" href="/lab-common.css" />
+        <style>
+            :root {
+                color-scheme: dark;
+                font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+                background: #07131f;
+                color: #eaf8ff;
+            }
+
+            * { box-sizing: border-box; }
+
+            body.document-lab {
+                min-height: 100vh;
+                margin: 0;
+                background:
+                    radial-gradient(circle at 76% 18%, rgba(14, 165, 233, 0.12), transparent 35rem),
+                    radial-gradient(circle at 10% 90%, rgba(20, 184, 166, 0.1), transparent 30rem),
+                    #07131f;
+            }
+
+            .tool-shell {
+                width: min(1240px, calc(100% - 32px));
+                margin: 0 auto;
+                padding: 20px 0 34px;
+            }
+
+            .tool-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 20px;
+                margin-bottom: 18px;
+            }
+
+            .tool-brand {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                color: #dff8ff;
+                font-size: 0.92rem;
+                font-weight: 800;
+                letter-spacing: 0.08em;
+            }
+
+            .tool-brand span {
+                width: 36px;
+                height: 36px;
+                display: grid;
+                place-items: center;
+                border: 1px solid rgba(94, 234, 212, 0.48);
+                border-radius: 11px;
+                background: rgba(13, 148, 136, 0.14);
+                font-size: 1.15rem;
+            }
+
+            .home-link {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                min-height: 42px;
+                padding: 0 15px;
+                border: 1px solid #29475b;
+                border-radius: 11px;
+                color: #b8d4e4;
+                background: rgba(8, 25, 39, 0.78);
+                text-decoration: none;
+            }
+
+            .workspace {
+                display: grid;
+                grid-template-columns: minmax(280px, 350px) minmax(0, 1fr);
+                min-height: calc(100vh - 114px);
+                border: 1px solid #244156;
+                border-radius: 24px;
+                overflow: hidden;
+                background: rgba(8, 25, 39, 0.82);
+                box-shadow: 0 28px 70px rgba(0, 0, 0, 0.28);
+            }
+
+            .control-panel {
+                display: flex;
+                flex-direction: column;
+                padding: 28px;
+                border-right: 1px solid #244156;
+                background: rgba(11, 32, 47, 0.94);
+            }
+
+            .kicker {
+                margin: 0 0 8px;
+                color: #5eead4;
+                font-size: 0.76rem;
+                font-weight: 800;
+                letter-spacing: 0.14em;
+                text-transform: uppercase;
+            }
+
+            h1 {
+                margin: 0;
+                color: #f0fdff;
+                font-size: clamp(1.8rem, 3vw, 2.45rem);
+                line-height: 1.08;
+                letter-spacing: -0.035em;
+            }
+
+            .intro {
+                margin: 13px 0 24px;
+                color: #8daabd;
+                font-size: 0.92rem;
+                line-height: 1.65;
+            }
+
+            .field-label {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                margin-bottom: 8px;
+                color: #cde5ef;
+                font-size: 0.88rem;
+                font-weight: 700;
+            }
+
+            .student-count {
+                color: #67e8f9;
+                font-variant-numeric: tabular-nums;
+            }
+
+            #rosterInput {
+                width: 100%;
+                min-height: 150px;
+                resize: vertical;
+                padding: 13px 14px;
+                border: 1px solid #315064;
+                border-radius: 13px;
+                outline: none;
+                color: #e8f8ff;
+                background: #071925;
+                font: 0.94rem/1.55 "Segoe UI", "Microsoft YaHei", sans-serif;
+            }
+
+            #rosterInput:focus {
+                border-color: #2dd4bf;
+                box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.12);
+            }
+
+            .roster-actions {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 9px;
+                margin-top: 10px;
+            }
+
+            .file-picker {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 42px;
+                padding: 0 12px;
+                border: 1px solid #315064;
+                border-radius: 11px;
+                color: #b9d6e4;
+                background: #0b2231;
+                font-size: 0.86rem;
+                font-weight: 700;
+                cursor: pointer;
+            }
+
+            #fileInput {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
+                clip: rect(0 0 0 0);
+                white-space: nowrap;
+            }
+
+            .tool-button {
+                min-height: 42px;
+                padding: 0 14px;
+                border: 1px solid transparent;
+                border-radius: 11px;
+                font: inherit;
+                font-weight: 750;
+                cursor: pointer;
+                transition: transform 140ms ease, border-color 140ms ease, opacity 140ms ease;
+            }
+
+            .tool-button:hover:not(:disabled) { transform: translateY(-1px); }
+            .tool-button:disabled { opacity: 0.5; cursor: wait; }
+
+            .tool-button.secondary {
+                border-color: #315064;
+                color: #d3eaf4;
+                background: #0b2231;
+            }
+
+            .tool-button.primary {
+                color: #042f2e;
+                background: #5eead4;
+                box-shadow: 0 12px 28px rgba(20, 184, 166, 0.18);
+            }
+
+            .spin-button {
+                min-height: 54px;
+                margin-top: 20px;
+                font-size: 1.02rem;
+            }
+
+            .utility-actions {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 9px;
+                margin-top: 9px;
+            }
+
+            .history-block {
+                margin-top: 23px;
+                padding-top: 20px;
+                border-top: 1px solid #244156;
+            }
+
+            .history-title {
+                margin: 0 0 10px;
+                color: #7899aa;
+                font-size: 0.78rem;
+                font-weight: 750;
+                letter-spacing: 0.1em;
+            }
+
+            .history-list {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 7px;
+                min-height: 30px;
+            }
+
+            .history-chip,
+            .history-empty {
+                display: inline-flex;
+                align-items: center;
+                min-height: 28px;
+                padding: 0 10px;
+                border-radius: 999px;
+                font-size: 0.8rem;
+            }
+
+            .history-chip {
+                border: 1px solid rgba(56, 189, 248, 0.28);
+                color: #bae6fd;
+                background: rgba(14, 165, 233, 0.1);
+            }
+
+            .history-empty { color: #57788a; padding-left: 0; }
+
+            .privacy {
+                margin: auto 0 0;
+                padding-top: 24px;
+                color: #567789;
+                font-size: 0.78rem;
+                line-height: 1.55;
+            }
+
+            .wheel-stage {
+                min-width: 0;
+                display: grid;
+                grid-template-rows: auto minmax(0, 1fr) auto;
+                place-items: center;
+                padding: 24px 30px 30px;
+                position: relative;
+                background:
+                    linear-gradient(rgba(30, 68, 88, 0.13) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(30, 68, 88, 0.13) 1px, transparent 1px);
+                background-size: 36px 36px;
+            }
+
+            .stage-meta {
+                width: 100%;
+                display: flex;
+                justify-content: space-between;
+                gap: 14px;
+                color: #68899c;
+                font-size: 0.82rem;
+            }
+
+            .fairness-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 7px;
+                color: #99f6e4;
+            }
+
+            .fairness-badge::before {
+                content: "";
+                width: 7px;
+                height: 7px;
+                border-radius: 50%;
+                background: #2dd4bf;
+                box-shadow: 0 0 10px #2dd4bf;
+            }
+
+            .wheel-wrap {
+                width: min(100%, 660px);
+                display: grid;
+                place-items: center;
+                position: relative;
+            }
+
+            #wheelCanvas {
+                width: min(100%, 620px);
+                height: auto;
+                display: block;
+                cursor: pointer;
+                filter: drop-shadow(0 24px 35px rgba(0, 0, 0, 0.34));
+                touch-action: manipulation;
+            }
+
+            .result-panel {
+                width: min(100%, 640px);
+                min-height: 82px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 14px 20px;
+                border: 1px solid #2a4b60;
+                border-radius: 18px;
+                background: rgba(7, 25, 37, 0.82);
+                text-align: center;
+            }
+
+            .result {
+                color: #dffcff;
+                font-size: clamp(1.3rem, 3.6vw, 2.35rem);
+                font-weight: 850;
+                letter-spacing: 0.02em;
+            }
+
+            .result[data-state="spinning"] { color: #7dd3fc; }
+            .result[data-state="picked"] { color: #5eead4; text-shadow: 0 0 22px rgba(45, 212, 191, 0.32); }
+            .result[data-state="error"] { color: #fca5a5; font-size: 1rem; }
+
+            @media (max-width: 900px) {
+                .tool-shell { width: min(100% - 20px, 1240px); padding-top: 10px; }
+                .workspace { grid-template-columns: 1fr; }
+                .control-panel { border-right: 0; border-bottom: 1px solid #244156; }
+                .privacy { margin-top: 20px; }
+                .wheel-stage { min-height: 660px; }
+            }
+
+            @media (max-width: 560px) {
+                .tool-brand { font-size: 0.82rem; }
+                .home-link span { display: none; }
+                .control-panel { padding: 22px 18px; }
+                .wheel-stage { min-height: 520px; padding: 18px 12px 20px; }
+                .stage-meta { font-size: 0.72rem; }
+                .result-panel { min-height: 68px; }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .tool-button { transition: none; }
+            }
+        </style>
+    </head>
+    <body class="document-lab">
+        <div class="tool-shell">
+            <header class="tool-header">
+                <div class="tool-brand"><span aria-hidden="true">🎡</span> CLASSROOM TOOL</div>
+                <a class="home-link btn-home" href="/"><span>返回展厅</span><b aria-hidden="true">⌂</b></a>
+            </header>
+
+            <main class="workspace">
+                <aside class="control-panel" aria-labelledby="tool-title">
+                    <p class="kicker">课堂随机抽取</p>
+                    <h1 id="tool-title">转盘点名</h1>
+                    <p class="intro">粘贴名单或导入 TXT。系统会降低刚被抽中者的权重，减少短时间内连续点到同一人的情况。</p>
+
+                    <label class="field-label" for="rosterInput">
+                        <span>学生名单（每行一人）</span>
+                        <span class="student-count" id="studentCount">6 人</span>
+                    </label>
+                    <textarea id="rosterInput" spellcheck="false">小张
+小王
+小李
+小赵
+小陈
+小刘</textarea>
+                    <div class="roster-actions">
+                        <label class="file-picker" for="fileInput">导入 TXT</label>
+                        <input id="fileInput" type="file" accept=".txt,text/plain" />
+                        <button class="tool-button secondary" id="applyRoster" type="button">应用名单</button>
+                    </div>
+
+                    <button class="tool-button primary spin-button" id="pickBtn" type="button">开始点名 <small>Space</small></button>
+                    <div class="utility-actions">
+                        <button class="tool-button secondary" id="fullBtn" type="button">全屏显示</button>
+                        <button class="tool-button secondary" id="resetBtn" type="button">重置权重</button>
+                    </div>
+
+                    <div class="history-block">
+                        <p class="history-title">最近抽取</p>
+                        <div class="history-list" id="historyList"><span class="history-empty">还没有记录</span></div>
+                    </div>
+
+                    <p class="privacy">名单只在当前浏览器中处理，不会上传到服务器。大名单时转盘随机显示部分候选，抽取范围仍覆盖完整名单。</p>
+                </aside>
+
+                <section class="wheel-stage" aria-label="点名转盘">
+                    <div class="stage-meta">
+                        <span class="fairness-badge">公平权重已启用</span>
+                        <span>点击转盘或按空格开始</span>
+                    </div>
+                    <div class="wheel-wrap">
+                        <canvas id="wheelCanvas" width="620" height="620" tabindex="0" aria-label="课堂点名转盘，点击开始抽取"></canvas>
+                    </div>
+                    <div class="result-panel" aria-live="polite">
+                        <div class="result" id="resultDisplay" data-state="ready">准备就绪</div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <script>
+            const canvas = document.getElementById("wheelCanvas");
+            const ctx = canvas.getContext("2d");
+            const resultDisplay = document.getElementById("resultDisplay");
+            const rosterInput = document.getElementById("rosterInput");
+            const studentCount = document.getElementById("studentCount");
+            const historyList = document.getElementById("historyList");
+            const pickButton = document.getElementById("pickBtn");
+            const applyButton = document.getElementById("applyRoster");
+            const resetButton = document.getElementById("resetBtn");
+            const fullButton = document.getElementById("fullBtn");
+            const fileInput = document.getElementById("fileInput");
+            const TAU = Math.PI * 2;
+            const center = canvas.width / 2;
+            const radius = 244;
+            const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+            let audioContext = null;
+            let allStudents = [];
+            let weights = new Map();
+            let recentPicks = [];
+            let displayNames = [];
+            let angle = -Math.PI / 2;
+            let spinning = false;
+
+            function parseRoster(value) {
+                return [...new Set(value.split(/[\r\n,，;；]+/).map((name) => name.trim()).filter(Boolean))].slice(0, 300);
+            }
+
+            function setResult(text, state = "ready") {
+                resultDisplay.textContent = text;
+                resultDisplay.dataset.state = state;
+            }
+
+            function updateHistory() {
+                historyList.replaceChildren();
+                if (!recentPicks.length) {
+                    const empty = document.createElement("span");
+                    empty.className = "history-empty";
+                    empty.textContent = "还没有记录";
+                    historyList.appendChild(empty);
+                    return;
+                }
+                for (const name of recentPicks.slice(0, 6)) {
+                    const chip = document.createElement("span");
+                    chip.className = "history-chip";
+                    chip.textContent = name;
+                    historyList.appendChild(chip);
+                }
+            }
+
+            function sampleDisplayNames(selectedName = "") {
+                const others = allStudents.filter((name) => name !== selectedName);
+                for (let index = others.length - 1; index > 0; index -= 1) {
+                    const swapIndex = Math.floor(Math.random() * (index + 1));
+                    [others[index], others[swapIndex]] = [others[swapIndex], others[index]];
+                }
+                displayNames = selectedName
+                    ? [selectedName, ...others.slice(0, 23)]
+                    : others.slice(0, 24);
+                for (let index = displayNames.length - 1; index > 0; index -= 1) {
+                    const swapIndex = Math.floor(Math.random() * (index + 1));
+                    [displayNames[index], displayNames[swapIndex]] = [displayNames[swapIndex], displayNames[index]];
+                }
+            }
+
+            function colorFor(index, total) {
+                const hue = 174 + (index / Math.max(total, 1)) * 72;
+                return index % 2 === 0
+                    ? `hsl(${hue} 60% 28%)`
+                    : `hsl(${hue} 54% 20%)`;
+            }
+
+            function drawWheel() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (!displayNames.length) return;
+                const arc = TAU / displayNames.length;
+
+                ctx.save();
+                ctx.translate(center, center);
+                ctx.beginPath();
+                ctx.arc(0, 0, radius + 12, 0, TAU);
+                ctx.fillStyle = "rgba(15, 43, 59, 0.92)";
+                ctx.fill();
+                ctx.shadowColor = "rgba(45, 212, 191, 0.3)";
+                ctx.shadowBlur = 28;
+                ctx.strokeStyle = "rgba(94, 234, 212, 0.8)";
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                displayNames.forEach((name, index) => {
+                    const start = angle + index * arc;
+                    const end = start + arc;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.arc(0, 0, radius, start, end);
+                    ctx.closePath();
+                    ctx.fillStyle = colorFor(index, displayNames.length);
+                    ctx.fill();
+                    ctx.strokeStyle = "rgba(186, 230, 253, 0.18)";
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+
+                    const middle = start + arc / 2;
+                    ctx.save();
+                    ctx.rotate(middle);
+                    ctx.textAlign = "right";
+                    ctx.textBaseline = "middle";
+                    ctx.fillStyle = "#e6fbff";
+                    ctx.font = `700 ${Math.max(11, Math.min(18, 280 / displayNames.length))}px Segoe UI, Microsoft YaHei, sans-serif`;
+                    const label = name.length > 8 ? `${name.slice(0, 7)}…` : name;
+                    ctx.fillText(label, radius - 20, 0);
+                    ctx.restore();
+                });
+
+                ctx.beginPath();
+                ctx.arc(0, 0, 42, 0, TAU);
+                ctx.fillStyle = "#071925";
+                ctx.fill();
+                ctx.strokeStyle = "#5eead4";
+                ctx.lineWidth = 6;
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(0, 0, 9, 0, TAU);
+                ctx.fillStyle = "#fbbf24";
+                ctx.fill();
+                ctx.restore();
+
+                ctx.save();
+                ctx.translate(center, 18);
+                ctx.beginPath();
+                ctx.moveTo(0, 52);
+                ctx.lineTo(-22, 8);
+                ctx.quadraticCurveTo(0, -2, 22, 8);
+                ctx.closePath();
+                ctx.fillStyle = "#fb7185";
+                ctx.shadowColor = "rgba(251, 113, 133, 0.55)";
+                ctx.shadowBlur = 20;
+                ctx.fill();
+                ctx.restore();
+            }
+
+            function applyRoster(names = parseRoster(rosterInput.value)) {
+                if (spinning) return;
+                if (!names.length) {
+                    setResult("请至少输入一个名字", "error");
+                    return;
+                }
+                allStudents = names;
+                rosterInput.value = names.join("\n");
+                weights = new Map(names.map((name) => [name, 1]));
+                recentPicks = [];
+                angle = -Math.PI / 2;
+                sampleDisplayNames();
+                studentCount.textContent = `${names.length} 人`;
+                updateHistory();
+                drawWheel();
+                setResult(`已准备 ${names.length} 人`);
+            }
+
+            function weightedSelect() {
+                const weighted = allStudents.map((name) => {
+                    const recentIndex = recentPicks.indexOf(name);
+                    const recentFactor = recentIndex < 0 ? 1 : 0.18 + recentIndex * 0.12;
+                    return { name, value: (weights.get(name) || 1) * recentFactor };
+                });
+                const total = weighted.reduce((sum, item) => sum + item.value, 0);
+                let cursor = Math.random() * total;
+                for (const item of weighted) {
+                    cursor -= item.value;
+                    if (cursor <= 0) return item.name;
+                }
+                return weighted.at(-1).name;
+            }
+
+            function initAudio() {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            function playTick() {
+                if (!audioContext) return;
+                const oscillator = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                oscillator.type = "sine";
+                oscillator.frequency.setValueAtTime(720, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(170, audioContext.currentTime + 0.035);
+                gain.gain.setValueAtTime(0.055, audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.045);
+                oscillator.connect(gain).connect(audioContext.destination);
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.05);
+            }
+
+            function setControlsDisabled(disabled) {
+                pickButton.disabled = disabled;
+                applyButton.disabled = disabled;
+                resetButton.disabled = disabled;
+                fileInput.disabled = disabled;
+            }
+
+            function spinWheel() {
+                if (spinning || !allStudents.length) return;
+                initAudio();
+                spinning = true;
+                setControlsDisabled(true);
+                setResult("正在寻找下一位……", "spinning");
+
+                const selectedName = weightedSelect();
+                sampleDisplayNames(selectedName);
+                const selectedIndex = displayNames.indexOf(selectedName);
+                const arc = TAU / displayNames.length;
+                const desiredAngle = -Math.PI / 2 - (selectedIndex + 0.5) * arc;
+                const alignment = ((desiredAngle - angle) % TAU + TAU) % TAU;
+                const startAngle = angle;
+                const targetAngle = angle + 6 * TAU + alignment;
+                const overshootAngle = targetAngle + arc * 0.64;
+                const duration = reduceMotion ? 800 : 5000;
+                let startTime = null;
+                let lastSegment = -1;
+
+                function animate(timestamp) {
+                    if (startTime === null) startTime = timestamp;
+                    const progress = Math.min(1, (timestamp - startTime) / duration);
+                    if (progress < 0.84) {
+                        const phase = progress / 0.84;
+                        const eased = 1 - Math.pow(1 - phase, 5);
+                        angle = startAngle + (overshootAngle - startAngle) * eased;
+                    } else {
+                        const phase = (progress - 0.84) / 0.16;
+                        const eased = 1 - Math.pow(1 - phase, 3);
+                        angle = overshootAngle + (targetAngle - overshootAngle) * eased;
+                    }
+
+                    const currentSegment = Math.floor((((angle % TAU) + TAU) % TAU) / arc);
+                    if (!reduceMotion && currentSegment !== lastSegment) {
+                        playTick();
+                        lastSegment = currentSegment;
+                    }
+                    drawWheel();
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                        return;
+                    }
+
+                    angle = targetAngle % TAU;
+                    weights.set(selectedName, Math.max(0.24, (weights.get(selectedName) || 1) * 0.5));
+                    for (const name of allStudents) {
+                        if (name !== selectedName) weights.set(name, Math.min(1, (weights.get(name) || 1) + 0.1));
+                    }
+                    recentPicks.unshift(selectedName);
+                    recentPicks = recentPicks.slice(0, Math.min(6, Math.max(1, allStudents.length - 1)));
+                    updateHistory();
+                    drawWheel();
+                    setResult(`${selectedName}，请回答！`, "picked");
+                    spinning = false;
+                    setControlsDisabled(false);
+                    canvas.focus({ preventScroll: true });
+                }
+
+                requestAnimationFrame(animate);
+            }
+
+            pickButton.addEventListener("click", spinWheel);
+            canvas.addEventListener("click", spinWheel);
+            canvas.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    spinWheel();
+                }
+            });
+            applyButton.addEventListener("click", () => applyRoster());
+            resetButton.addEventListener("click", () => {
+                if (spinning) return;
+                weights = new Map(allStudents.map((name) => [name, 1]));
+                recentPicks = [];
+                updateHistory();
+                setResult("抽取权重已重置");
+            });
+            fullButton.addEventListener("click", async () => {
+                try {
+                    if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+                    else await document.exitFullscreen();
+                } catch {
+                    setResult("当前浏览器不支持全屏", "error");
+                }
+            });
+            fileInput.addEventListener("change", () => {
+                const file = fileInput.files && fileInput.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.addEventListener("load", () => {
+                    const names = parseRoster(String(reader.result || ""));
+                    if (names.length) applyRoster(names);
+                    else setResult("文件中没有读取到名字", "error");
+                    fileInput.value = "";
+                });
+                reader.addEventListener("error", () => setResult("名单文件读取失败", "error"));
+                reader.readAsText(file, "utf-8");
+            });
+            addEventListener("keydown", (event) => {
+                const tag = event.target && event.target.tagName;
+                if (event.code === "Space" && !["INPUT", "TEXTAREA", "BUTTON"].includes(tag)) {
+                    event.preventDefault();
+                    spinWheel();
+                }
+            });
+
+            applyRoster();
+        </script>
+        <script src="/lab-runtime.js" defer></script>
+    </body>
+</html>

@@ -12,6 +12,14 @@
         }
     })();
     const ADMIN_MODE = new URLSearchParams(location.search).get("comments-admin") === "1";
+    const COMMENTS_CONFIG = {
+        title: document.documentElement.dataset.commentsTitle || "互动留言",
+        subtitle: document.documentElement.dataset.commentsSubtitle || "",
+        placeholder:
+            document.documentElement.dataset.commentsPlaceholder ||
+            "写下问题、想法或实验发现…",
+        launcher: document.documentElement.dataset.commentsLauncher || "留言",
+    };
     const state = {
         open: false,
         loaded: false,
@@ -47,7 +55,7 @@
         root.dataset.admin = ADMIN_MODE ? "true" : "false";
         root.innerHTML = `
             <button class="pl-comments-launcher" type="button" aria-haspopup="dialog" aria-expanded="false">
-                <span aria-hidden="true">💬</span><span>留言</span><span class="pl-comments-count" hidden>0</span>
+                <span aria-hidden="true">💬</span><span class="pl-comments-launcher-label">留言</span><span class="pl-comments-count" hidden>0</span>
             </button>
             <div class="pl-comments-overlay" aria-hidden="true"></div>
             <section class="pl-comments-drawer" role="dialog" aria-modal="true" aria-labelledby="pl-comments-title" aria-hidden="true">
@@ -72,10 +80,12 @@
         const refs = {
             root,
             launcher: root.querySelector(".pl-comments-launcher"),
+            launcherLabel: root.querySelector(".pl-comments-launcher-label"),
             count: root.querySelector(".pl-comments-count"),
             overlay: root.querySelector(".pl-comments-overlay"),
             drawer: root.querySelector(".pl-comments-drawer"),
             close: root.querySelector(".pl-comments-icon-button"),
+            title: root.querySelector("#pl-comments-title"),
             subtitle: root.querySelector(".pl-comments-head p"),
             list: root.querySelector(".pl-comments-list"),
             form: root.querySelector("form"),
@@ -91,7 +101,11 @@
             submit: root.querySelector(".pl-comments-submit"),
             message: root.querySelector(".pl-comments-message"),
         };
-        refs.subtitle.textContent = `${pageTitle()} · 每个实验独立讨论`;
+        refs.launcherLabel.textContent = COMMENTS_CONFIG.launcher;
+        refs.title.textContent = COMMENTS_CONFIG.title;
+        refs.subtitle.textContent =
+            COMMENTS_CONFIG.subtitle || `${pageTitle()} · 每个实验独立讨论`;
+        refs.content.placeholder = COMMENTS_CONFIG.placeholder;
         try {
             refs.nickname.value = localStorage.getItem("physicsLab.commentNickname") || "";
             if (ADMIN_MODE) refs.adminToken.value = sessionStorage.getItem("physicsLab.commentsAdminToken") || "";

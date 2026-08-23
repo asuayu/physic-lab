@@ -150,6 +150,27 @@ const categories = [
         animations: [], // 暂无内容
     },
     {
+        id: "community-tools",
+        name: "留言工具区",
+        color: "#14b8a6", // 青绿色
+        animations: [
+            {
+                title: "动画需求留言板",
+                desc: "告诉我你想看懂的物理过程、希望调节的参数或需要演示的题目，需求会在这里公开交流。",
+                icon: "✦",
+                link: "/留言工具区.html",
+                publishedAt: "2026-08-23T19:20:00+08:00",
+            },
+            {
+                title: "课堂转盘点名",
+                desc: "导入或粘贴学生名单，使用带公平权重和近期回避机制的转盘随机点名。",
+                icon: "🎡",
+                link: "/课堂点名系统.html",
+                publishedAt: "2026-08-23T19:18:00+08:00",
+            },
+        ],
+    },
+    {
         id: "exercise-demo",
         name: "练习题演示",
         color: "#f97316", // 橙色
@@ -330,6 +351,43 @@ const animations = categories
                 background-color: #000;
             }
 
+            .card-visual {
+                height: 200px;
+                display: grid;
+                place-items: center;
+                position: relative;
+                overflow: hidden;
+                border-bottom: 1px solid #334155;
+                background:
+                    radial-gradient(circle at 30% 25%, rgba(45, 212, 191, 0.28), transparent 34%),
+                    linear-gradient(135deg, #0f172a, #12354a);
+            }
+
+            .card-visual::before,
+            .card-visual::after {
+                content: "";
+                position: absolute;
+                width: 150px;
+                height: 150px;
+                border: 1px solid rgba(94, 234, 212, 0.22);
+                border-radius: 50%;
+            }
+
+            .card-visual::before {
+                transform: translate(-64px, 42px);
+            }
+
+            .card-visual::after {
+                transform: translate(78px, -54px);
+            }
+
+            .card-visual span {
+                position: relative;
+                z-index: 1;
+                font-size: 4.5rem;
+                filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.35));
+            }
+
             .card-content {
                 padding: 25px;
                 flex-grow: 1;
@@ -462,15 +520,24 @@ const animations = categories
                             data-category={anim.categoryId}
                             style={`border-top: 3px solid ${anim.categoryColor};`}
                         >
-                            <img
-                                src={anim.image}
-                                alt={anim.title}
-                                loading="lazy"
-                                decoding="async"
-                                width="640"
-                                height="400"
-                                onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100%\' height=\'100%\'><rect width=\'100%\' height=\'100%\' fill=\'%23334155\'/><text x=\'50%\' y=\'50%\' font-family=\'sans-serif\' font-size=\'16\' fill=\'%2394a3b8\' text-anchor=\'middle\' dy=\'.3em\'>暂无封面图</text></svg>'"
-                            />
+                            {
+                                anim.image ? (
+                                    <img
+                                        src={anim.image}
+                                        alt={anim.title}
+                                        loading="lazy"
+                                        decoding="async"
+                                        width="640"
+                                        height="400"
+                                        onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100%\' height=\'100%\'><rect width=\'100%\' height=\'100%\' fill=\'%23334155\'/><text x=\'50%\' y=\'50%\' font-family=\'sans-serif\' font-size=\'16\' fill=\'%2394a3b8\' text-anchor=\'middle\' dy=\'.3em\'>暂无封面图</text></svg>'"
+                                    />
+                                ) : (
+                                    <div class="card-visual" role="img" aria-label={anim.title}>
+                                        <span aria-hidden="true">{anim.icon}</span>
+                                    </div>
+                                )
+                            }
+                            {anim.icon && <span class="card-tag" style="background: rgba(13, 148, 136, 0.9);">工具区</span>}
                             <div class="card-content">
                                 <h3>{anim.title}</h3>
                                 <p>{anim.desc}</p>
