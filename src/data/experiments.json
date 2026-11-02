@@ -189,6 +189,13 @@
     "color": "#f97316",
     "animations": [
       {
+        "title": "圆环碰撞与加权弧速率｜2024 湖南高考",
+        "desc": "联动圆环与展开图，理解恒速辅助点 P 和加权弧坐标 Q；调节恢复系数，逐次观察至第 81 次碰撞。",
+        "image": "/covers/ring-collision.svg",
+        "link": "/圆环碰撞.html",
+        "publishedAt": "2026-11-02T14:30:00+08:00"
+      },
+      {
         "title": "双凸透镜组合成像｜2021 清华强基",
         "desc": "从焦度相加出发，动态追踪主光线，解释两片相同凸透镜为何在屏上形成等大倒立矩形实像。",
         "image": "/covers/double-convex-lens.svg",

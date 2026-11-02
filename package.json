@@ -11,7 +11,7 @@
     "check:worker": "node --check worker/index.js && node --check public/lab-comments.js && node --check public/lab-runtime.js && node --check public/lab-tools.js && node --check public/lab-physics.js",
     "check": "node scripts/check-content.mjs",
     "check:types": "astro check --minimumFailingSeverity error",
-    "test:unit": "node --test tests/physics.test.mjs tests/runtime.test.mjs",
+    "test:unit": "node --test tests/physics.test.mjs tests/runtime.test.mjs tests/ring-collision.test.cjs",
     "test:comments": "node scripts/test-comments-isolated.mjs",
     "test:browser": "node scripts/check-browser.mjs",
     "test": "npm run test:unit && npm run test:comments",

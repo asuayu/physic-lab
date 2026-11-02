@@ -1,6 +1,6 @@
 # Physics Lab · 物理互动演示实验室
 
-以 Astro 静态生成首页，以独立 HTML、原生 JavaScript 和 Canvas 运行物理实验。Cloudflare Worker 提供静态资源与留言 API，D1 保存留言。实验计算在浏览器中完成。
+以 Astro 静态生成首页，以独立 HTML、原生 JavaScript、Canvas 和 SVG 运行物理实验。Cloudflare Worker 提供静态资源与留言 API，D1 保存留言。实验计算在浏览器中完成。
 
 ## 开发与验证
 
@@ -26,13 +26,13 @@ Astro 开发服务器默认位于 `http://localhost:4321`，仅预览静态实�
 | `npm run validate:full` | `validate` 加浏览器冒烟测试；与 CI 使用相同入口 |
 | `npm run preview` | 预览生产静态产物 |
 
-浏览器检查遍历全部实验页（包括隐藏卡片对应页面），验证页面异常、内部资源和有效 Canvas 尺寸，并验证首页搜索、分类、URL 状态与代表性播放/暂停/重置操作。该测试模拟只读留言响应；真实 API 由隔离集成测试验证。需要保存截图时设置 `BROWSER_SCREENSHOTS=1`，输出至 `artifacts/browser/`。本机已安装 Edge 时可设 `BROWSER_TEST_CHANNEL=msedge`；默认使用 Playwright Chromium。`BROWSER_TEST_URL` 可指定已经运行的静态预览地址。
+浏览器检查遍历全部实验页（包括隐藏卡片对应页面），验证页面异常、内部资源和有效 Canvas / SVG 尺寸，并验证首页搜索、分类、URL 状态与代表性播放/暂停/重置操作。该测试模拟只读留言响应；真实 API 由隔离集成测试验证。需要保存截图时设置 `BROWSER_SCREENSHOTS=1`，输出至 `artifacts/browser/`。本机已安装 Edge 时可设 `BROWSER_TEST_CHANNEL=msedge`；默认使用 Playwright Chromium。`BROWSER_TEST_URL` 可指定已经运行的静态预览地址。
 
 内容检查刻意只验证可静态确定的资源与 DOM ID；计算生成的 ID、运行时状态、物理结果仍需对应模型测试或浏览器检查。通过构建不等于物理模型已获得实验验证。
 
 ## 新增实验
 
-1. 在 `public/` 创建独立 HTML，加入 `<title>`、viewport、返回 `/` 的链接以及 Canvas 的可访问名称。
+1. 在 `public/` 创建独立 HTML，加入 `<title>`、viewport、返回 `/` 的链接以及 Canvas 或 SVG 的可访问名称。
 2. 引入共享样式与运行时：
 
    ```html
@@ -56,13 +56,20 @@ Astro 开发服务器默认位于 `http://localhost:4321`，仅预览静态实�
    `image` 或 `icon` 至少填一项；路径必须以 `/` 开头。`hidden: true` 只隐藏首页入口，页面仍能直接访问，也会接受内容和浏览器检查，不用于访问控制。分类 ID、链接、发布日期和必填项由 `src/data/experiments.mjs` 的 Zod schema 校验，首页与检查脚本共享此数据。可见条目按发布时间倒序。
 
 4. 将可独立验证的物理计算提取为纯函数，给出模型假设、单位与有效范围。共享模型位于 `public/lab-physics.js`。数值积分优先使用固定时间步 `PhysicsLab.createFixedStepper()`，重力轨道可使用 `PhysicsLab.stepGravity()`；`frameScale()` 适合既有视觉演示的帧率归一化，不替代稳定积分算法。Canvas 可使用 `resizeCanvas()` 与 `observeResize()` 处理设备像素比和容器变化。`createAnimation()` 提供统一动画生命周期。
+   SVG 演示在根 `<svg>` 加 `data-lab-export` 和可访问名称，即可使用公共参数链接及 PNG 导出。数值恢复结束会发送 `physicslab:state-restored` 事件，`detail.values` 为原始保存值；依赖多组参数的页面可在此统一恢复局部时间或其它派生状态。
 5. 执行 `npm run validate:full`，检查桌面与手机布局、边界参数及暂停/重置状态。
 
 首页支持关键词和分类组合筛选。当前状态保存在 `?q=关键词&category=optics` 中，可以直接分享或刷新恢复；无 JavaScript 时仍显示全部已发布条目。实验页的公共工具还支持复制参数链接和导出 PNG；课堂名单不会包含在分享链接中。
 
-参数链接保存有 ID 的数值、范围、复选框和选择控件，以及明确声明的模式按钮；不保存名单、留言、凭据、动画时间或拖拽视角，也不会携带原地址中的未知查询参数和片段。新实验的模式按钮可加 `data-lab-share` 和稳定 ID，用 `active` 类或 `aria-pressed` 表示当前状态；可开关的模式另加 `data-lab-share-toggle`。也支持现有的 `data-mode`、`data-scene`、`data-step` 等模式属性。
+参数链接保存有 ID 的数值、范围、复选框和选择控件，以及明确声明的模式按钮；不保存名单、留言、凭据或拖拽视角；动画时间仅在页面显式声明为数值控件时保存，也不会携带原地址中的未知查询参数和片段。新实验的模式按钮可加 `data-lab-share` 和稳定 ID，用 `active` 类或 `aria-pressed` 表示当前状态；可开关的模式另加 `data-lab-share-toggle`。也支持现有的 `data-mode`、`data-scene`、`data-step` 等模式属性。
 
 Windows 云同步目录若出现依赖文件 `UNKNOWN: unknown error, read`，先在不参与同步的本地目录用同一锁文件执行 `npm ci` 和 `npm run validate:full`，区分文件系统问题与代码错误；不要依赖跨机器同步的 `node_modules`。
+
+## 圆环碰撞演示
+
+`public/圆环碰撞.html` 改编自本地圆环碰撞教学项目，对应 2024 湖南物理第 15 题第三问。模型、交互、样式及离线导出分别位于 `public/ring-collision/`。假设圆环光滑固定、mA > mB、0.2 ≤ e ≤ 1，n 最大 40。Q 是累计加权弧坐标，V = dQ/dt 恒定，P 仅将 Q 绕回圆环，不代表平面质心。模型通过分段精确时刻与有理数圈数余量避免后期相位丢失；极大时长使用科学计数，区间压缩不代表真实时间。
+
+课堂工具可分享当前碰撞区间、局部进度和参数，导出三个 SVG 图的 PNG。页脚“下载离线版”生成含样式与模型的独立 HTML；离线版不包含站点评论和公共工具。`tests/ring-collision.test.cjs` 检验碰撞守恒、恢复系数、奇偶碰撞关系和第 81 次碰撞极端情况。
 
 ## 留言开发
 

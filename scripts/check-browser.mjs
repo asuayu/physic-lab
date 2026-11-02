@@ -72,9 +72,11 @@ try {
             pageErrors.length = 0;
             assetFailures.length = 0;
             await page.goto(new URL(path, baseUrl).href, { waitUntil: "networkidle" });
-            await page.waitForFunction(() => [...document.querySelectorAll("canvas")].some((canvas) => {
-                const box = canvas.getBoundingClientRect();
-                return canvas.width > 0 && canvas.height > 0 && box.width > 0 && box.height > 0;
+            await page.waitForFunction(() => [...document.querySelectorAll("canvas, svg[data-lab-export]")].some((surface) => {
+                const box = surface.getBoundingClientRect();
+                return box.width > 0 && box.height > 0 && (surface.localName === "svg"
+                    ? surface.viewBox.baseVal.width > 0 && surface.viewBox.baseVal.height > 0
+                    : surface.width > 0 && surface.height > 0);
             }));
             assert.deepEqual(pageErrors, [], `${path} (${viewport.width}px) pageerror`);
             assert.deepEqual(assetFailures, [], `${path} (${viewport.width}px) missing resources`);
@@ -220,6 +222,110 @@ try {
         assert.equal(await page.locator("#reverse").getAttribute("aria-pressed"), "true");
         assert.equal(await page.locator("#areaToggle").getAttribute("aria-pressed"), "false");
 
+        if (pages.includes("/圆环碰撞.html")) {
+            await page.goto(new URL("/圆环碰撞.html", baseUrl).href, { waitUntil: "networkidle" });
+            assert.equal(await page.locator("svg[data-lab-export]").count(), 3);
+            assert.equal(await page.locator("canvas").count(), 0, "The ring experiment retains native SVG rendering");
+            assert.equal(await page.locator("#event-rows tr").count(), 3);
+            assert.equal(Number(await page.locator("#va-value").innerText()), 1.5);
+            assert.equal(Number(await page.locator("#vb-value").innerText()), 3);
+            assert.equal(Number(await page.locator("#vq-value").innerText()), 2);
+            assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, "Ring page must fit mobile width");
+            await page.locator("#play-btn").click();
+            await page.waitForFunction(() => Number(document.querySelector("#collision-fraction").value) > 0);
+            await page.locator("#play-btn").click();
+            assert.equal(await page.locator("#play-btn").getAttribute("aria-pressed"), "false");
+            const pausedFraction = await page.locator("#collision-fraction").inputValue();
+            await page.waitForTimeout(120);
+            assert.equal(await page.locator("#collision-fraction").inputValue(), pausedFraction);
+            await page.locator("#reset-btn").click();
+            await page.locator("#next-btn").click();
+            assert.equal(await page.locator("#current-event").innerText(), "2");
+            await page.locator("#prev-btn").click();
+            assert.equal(await page.locator("#current-event").innerText(), "1");
+            await page.locator("#end-btn").click();
+            assert.equal(await page.locator("#current-event").innerText(), "3");
+            assert.equal(await page.locator("#sa-value").innerText(), await page.locator("#sb-value").innerText());
+            if (process.env.BROWSER_SCREENSHOTS === "1") {
+                const output = join(root, "artifacts", "browser");
+                await mkdir(output, { recursive: true });
+                await page.screenshot({ path: join(output, `ring-${viewport.width}.png`), fullPage: true });
+            }
+
+            await page.locator('[data-before="2"]').click();
+            const beforeLink = await copyParameters();
+            await page.goto(beforeLink, { waitUntil: "networkidle" });
+            assert.equal(await page.locator("#collision-before").inputValue(), "2", "Shared links preserve the pre-collision state");
+            await page.locator("#restitution").focus();
+            await page.keyboard.press("Home");
+            await page.locator("#pairs").fill("40");
+            await page.locator("#pairs").press("Tab");
+            assert.equal(await page.locator("#event-rows tr").count(), 81);
+            await page.locator("#end-btn").click();
+            assert.equal(await page.locator("#current-event").innerText(), "81");
+            await page.locator("#prev-btn").click();
+            assert.equal(await page.locator("#current-event").innerText(), "80");
+            await page.locator("#segment-timeline").evaluate((input) => {
+                input.value = "5000";
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+            });
+            const lateState = await page.locator("#collision-lab").evaluate((element) => ({
+                gap: Number(element.dataset.gap), relative: Number(element.dataset.relative),
+            }));
+            assert.ok(Math.abs(lateState.gap - Math.PI) < 1e-10, "At n=40/e=0.2 the final segment preserves its half-circle gap");
+            assert.notEqual(lateState.relative, 0, "Late relative velocity must not disappear through cancellation");
+            await page.locator("#reset-btn").click();
+            await page.locator("#next-btn").click();
+            await page.locator("#segment-timeline").focus();
+            await page.keyboard.press("Home");
+            await page.keyboard.press("ArrowRight");
+            const ringPosition = await page.evaluate(() => Object.fromEntries(
+                ["collision-offset", "collision-fraction", "collision-before", "pairs", "restitution"].map((id) => [id, document.getElementById(id).value]),
+            ));
+            assert.equal(ringPosition["collision-offset"], "1");
+            assert.ok(Number(ringPosition["collision-fraction"]) > 0 && Number(ringPosition["collision-fraction"]) < 0.01);
+            const ringLink = await copyParameters();
+            await page.goto(ringLink, { waitUntil: "networkidle" });
+            const restoredPosition = await page.evaluate(() => Object.fromEntries(
+                ["collision-offset", "collision-fraction", "collision-before", "pairs", "restitution"].map((id) => [id, document.getElementById(id).value]),
+            ));
+            assert.deepEqual(restoredPosition, ringPosition, "Shared links preserve early collision segments even when n=40 and e=0.2");
+
+            await page.locator(".lab-tools summary").click();
+            const options = [["0", 620, 450], ["1", 780, 450], ["2", 780, 150]];
+            for (const [option, width, height] of options) {
+                await page.getByRole("combobox", { name: "选择导出图形", exact: true }).selectOption(option);
+                const downloaded = page.waitForEvent("download");
+                await page.getByRole("button", { name: "导出图形 PNG", exact: true }).click();
+                const download = await downloaded;
+                assert.equal(await download.failure(), null);
+                const png = await readFile(await download.path());
+                assert.equal(png.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
+                assert.equal(png.readUInt32BE(16), width, "SVG export uses viewBox width");
+                assert.equal(png.readUInt32BE(20), height, "SVG export uses viewBox height");
+                const pixels = await page.evaluate(async (base64) => {
+                    const image = new Image();
+                    image.src = `data:image/png;base64,${base64}`;
+                    await image.decode();
+                    const canvas = document.createElement("canvas");
+                    canvas.width = image.width;
+                    canvas.height = image.height;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(image, 0, 0);
+                    const data = ctx.getImageData(0, 0, image.width, image.height).data;
+                    let colored = 0;
+                    for (let i = 0; i < data.length; i += 16) if (data[i] < 245 || data[i + 1] < 245 || data[i + 2] < 245) colored++;
+                    return { corner: [...data.slice(0, 4)], colored };
+                }, png.toString("base64"));
+                assert.deepEqual(pixels.corner, [255, 255, 255, 255], "SVG export has an opaque white background");
+                assert.ok(pixels.colored > 100, "SVG export contains the plotted diagram");
+            }
+            await page.locator(".pl-comments-launcher").click();
+            await page.locator(".pl-comments-drawer[open]").waitFor();
+            await page.getByRole("button", { name: "关闭留言", exact: true }).click();
+            console.log(`圆环 SVG、播放导航、分享精确状态与三图 PNG 导出通过：${viewport.width}px。`);
+        }
+
         await page.goto(new URL("/课堂点名系统.html", baseUrl).href, { waitUntil: "networkidle" });
         await page.locator("#rosterInput").fill("ONLY_BROWSER_TEST_PERSON");
         assert.equal((await copyParameters()).includes("ONLY_BROWSER_TEST_PERSON"), false, "Shared links exclude the student roster");
@@ -231,7 +337,7 @@ try {
         }
         await context.close();
     }
-    console.log(`浏览器冒烟通过：${pages.length} 个页面，桌面/手机 Canvas、页面异常、资源、搜索、URL 状态和播放/暂停/重置。`);
+    console.log(`浏览器冒烟通过：${pages.length} 个页面，桌面/手机 Canvas 或显式 SVG、页面异常、资源、搜索、分享/导出和播放导航。`);
 } finally {
     await browser?.close();
     if (server) await new Promise((done) => server.close(done));

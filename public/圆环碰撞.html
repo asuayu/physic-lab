@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f6f3">
+  <meta name="description" content="2024湖南物理第15题第三问：动态观察圆环中A、B与辅助点P，理解恒定的加权弧速率V。可调初速度、质量比、恢复系数、播放倍速和至第81次碰撞的过程。">
+  <title>圆环碰撞与加权弧速率 | 物理互动演示实验室</title>
+  <meta name="lab-model" content="固定光滑圆环，mA > mB，0.2 ≤ e ≤ 1；Q 为累计加权弧坐标，P 为辅助点，V 不是平面质心速度。">
+  <link rel="canonical" href="https://huang-physics.top/圆环碰撞.html">
+  <link rel="stylesheet" href="/lab-common.css">
+  <link rel="stylesheet" href="/ring-collision/styles.css">
+  <script defer src="/ring-collision/model.js"></script>
+  <script defer src="/ring-collision/app.js"></script>
+  <script defer src="/lab-runtime.js"></script>
+  <script defer src="/ring-collision/offline.js"></script>
+</head>
+<body class="document-lab ring-collision-lab">
+<main id="collision-lab">
+  <div hidden aria-hidden="true"><input id="collision-offset" type="number" min="0" max="79" value="0"><input id="collision-fraction" type="number" min="0" max="1" step="any" value="0"><input id="collision-before" type="number" min="0" max="81" value="0"></div>
+  <nav class="site-nav" aria-label="网站导航"><a class="site-home" href="/">← 返回物理展厅</a><span>练习题演示</span></nav>
+  <header class="app-header">
+    <div class="heading-group">
+      <div class="eyebrow"><span class="brand-mark" aria-hidden="true">P</span><span>圆环碰撞实验室</span><span class="eyebrow-divider" aria-hidden="true"></span><span>2024 湖南 · 15（3）</span></div>
+      <h1>圆环碰撞 <span>· 第三问</span></h1>
+      <p class="subtitle">看清 A、B 与恒速辅助点 P 怎样运动</p>
+    </div>
+    <div class="header-note"><span class="live-dot" aria-hidden="true"></span>圆环真实空间 <span aria-hidden="true">＋</span> 展开弧坐标</div>
+  </header>
+
+  <div class="workspace">
+    <aside class="parameter-panel card" aria-label="初始条件与演示设置">
+      <div class="panel-heading"><h2>初始条件</h2><span class="tiny-tag">可调</span></div>
+      <p class="control-help">v₀ 为第1次碰撞前 A 的速率。改变初始条件会重新计时；播放倍速可随时调整。</p>
+
+      <div class="control-block">
+        <div class="control-topline"><label for="v0">A 碰前初速度 <i>v</i><sub>0</sub></label><output id="v0-value" for="v0">3.0 m/s</output></div>
+        <input id="v0" type="range" min="0.5" max="8" step="0.1" value="3" aria-label="A碰撞前的初速度，米每秒">
+        <div class="range-ends" aria-hidden="true"><span>0.5</span><span>8 m/s</span></div>
+      </div>
+      <div class="control-block">
+        <div class="control-topline"><label for="ratio">质量比 <i>m</i><sub>A</sub> / <i>m</i><sub>B</sub></label><output id="ratio-value" for="ratio">2.0</output></div>
+        <input id="ratio" type="range" min="1.1" max="5" step="0.1" value="2" aria-label="A与B质量比，大于1">
+        <div class="range-ends"><span>m<sub>B</sub> = 1 kg</span><span>m<sub>A</sub> &gt; m<sub>B</sub></span></div>
+      </div>
+      <div class="control-block">
+        <div class="control-topline"><label for="restitution">恢复系数 <i>e</i></label><output id="restitution-value" for="restitution">0.50</output></div>
+        <input id="restitution" type="range" min="0.2" max="1" step="0.01" value="0.5" aria-label="恢复系数，碰后相对速率与碰前之比">
+        <div class="range-ends" aria-hidden="true"><span>0.20</span><span>1.00</span></div>
+        <p class="input-note">每碰一次，相对速率乘以 e；e = 1 用作弹性对照。</p>
+      </div>
+      <div class="control-block">
+        <div class="control-topline"><label for="radius">圆环半径 <i>R</i></label><output id="radius-value" for="radius">1.0 m</output></div>
+        <input id="radius" type="range" min="0.2" max="2" step="0.1" value="1" aria-label="圆环半径，米">
+        <div class="range-ends" aria-hidden="true"><span>0.2</span><span>2 m</span></div>
+      </div>
+      <div class="number-control">
+        <label for="pairs">观察范围 <i>n</i><small>观察至第 2n + 1 次碰撞</small></label>
+        <input id="pairs" type="number" min="1" max="40" step="1" value="1" inputmode="numeric" aria-label="观察范围n，1到40">
+      </div>
+
+      <div class="presets-section">
+        <h3>快速对照</h3>
+        <div class="preset-grid" role="group" aria-label="示例参数">
+          <button type="button" class="preset-button selected" data-preset="example" aria-pressed="true">讲义示例<span>e = 0.5 · 比值 2</span></button>
+          <button type="button" class="preset-button" data-preset="dissipative" aria-pressed="false">多次碰撞<span>e = 0.7 · n = 2</span></button>
+          <button type="button" class="preset-button" data-preset="elastic2" aria-pressed="false">弹性对照 ①<span>e = 1 · 比值 2</span></button>
+          <button type="button" class="preset-button" data-preset="elastic5" aria-pressed="false">弹性对照 ②<span>e = 1 · 比值 5</span></button>
+        </div>
+      </div>
+
+      <details class="physics-note">
+        <summary>V 在圆弧上怎样理解？</summary>
+        <div>
+          <p><b>Q</b> 是沿环展开的加权弧坐标：<span class="inline-equation">Q = (m<sub>A</sub>s<sub>A</sub> + m<sub>B</sub>s<sub>B</sub>) / M</span>其中 M = m<sub>A</sub> + m<sub>B</sub>。</p>
+          <p><b>V</b> 是 Q 的变化率：<span class="inline-equation">V = dQ/dt = (m<sub>A</sub>v<sub>A</sub> + m<sub>B</sub>v<sub>B</sub>) / M</span>它恒定，不是平面质心的速度。</p>
+          <p><b>P</b> 把 Q 绕回圆环：θ<sub>P</sub> = Q/R（按 2π 取余），以切向速率 V、角速度 Ω = V/R 匀速转动。P 是辅助记号，不是额外物体。</p>
+        </div>
+      </details>
+    </aside>
+
+    <div class="main-content">
+      <section class="playback-panel card" aria-label="播放和时间控制">
+        <div class="playback-topline">
+          <div class="transport-controls" role="group" aria-label="播放操作">
+            <button type="button" id="play-btn" class="button button-primary">播放</button>
+            <button type="button" id="reset-btn" class="button">重置</button>
+            <span class="button-divider" aria-hidden="true"></span>
+            <button type="button" id="prev-btn" class="button button-quiet">上次碰撞</button>
+            <button type="button" id="next-btn" class="button button-quiet">下次碰撞</button>
+            <button type="button" id="end-btn" class="button button-quiet">终点</button>
+          </div>
+          <label class="rate-control" for="rate">播放倍速
+            <select id="rate" aria-label="播放倍速，不改变物理参数">
+              <option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option>
+            </select>
+          </label>
+        </div>
+        <div class="playback-mode-row">
+          <label for="playback-mode">时间方式 <select id="playback-mode" aria-label="播放时间方式"><option value="physical" selected>真实时间</option><option value="interval">区间压缩</option></select></label>
+          <p id="sampling-note">真实时间播放；V 为辅助点恒定切向速率。圈数多时画面可能跳圈。</p>
+        </div>
+        <div class="timeline-row">
+          <output id="time-label" for="timeline" class="time-value">0.000 s</output>
+          <input id="timeline" data-lab-restore-order="10" type="range" min="0" max="10000" step="1" value="0" aria-label="全程真实时间进度">
+          <span id="duration-label" class="duration-value">12.566 s</span>
+        </div>
+        <div class="segment-control">
+          <div><label for="segment-timeline">当前碰撞区间</label><output id="segment-label" for="segment-timeline">第 1 → 2 次碰撞 · 0%</output></div>
+          <input id="segment-timeline" data-lab-restore-order="20" type="range" min="0" max="10000" step="1" value="0" aria-label="当前碰撞区间进度">
+        </div>
+        <div class="playback-bottomline">
+          <div class="status" aria-live="polite"><span id="collision-badge" class="collision-badge">第 1 次碰撞后</span><span id="status-label">准备播放</span></div>
+          <div class="view-toggles">
+            <label><input id="pause-collision" type="checkbox">碰撞时暂停</label>
+            <label><input id="show-trail" type="checkbox" checked>辅助点弧迹</label>
+            <label><input id="show-vectors" type="checkbox" checked>速度箭头</label>
+          </div>
+        </div>
+      </section>
+
+      <section class="speed-metrics" aria-label="当前速率">
+        <div class="speed-card metric-a"><div class="metric-label"><span class="series-mark mark-a" aria-hidden="true">A</span>A 球速率</div><div class="metric-value"><output id="va-value">1.500</output><span>m/s</span></div></div>
+        <div class="speed-card metric-b"><div class="metric-label"><span class="series-mark mark-b" aria-hidden="true">B</span>B 球速率</div><div class="metric-value"><output id="vb-value">3.000</output><span>m/s</span></div></div>
+        <div class="speed-card metric-q"><div class="metric-label"><span class="series-mark mark-q" aria-hidden="true">V</span>加权弧速率 <span class="constant-label">恒定</span></div><div class="metric-value"><output id="vq-value">2.000</output><span>m/s</span></div></div>
+        <div class="speed-card metric-q"><div class="metric-label"><span class="series-mark mark-q" aria-hidden="true">Ω</span>P 的角速度</div><div class="metric-value"><output id="omega-value">2.000</output><span>rad/s</span></div></div>
+      </section>
+
+      <div class="visualization-grid">
+        <section class="visual-panel card circle-panel" aria-labelledby="circle-title">
+          <div class="chart-heading"><div><span class="chart-kicker">圆环俯视</span><h2 id="circle-title">A、B 与辅助点 P</h2></div><span class="chart-pill">P：θ = Q/R</span></div>
+          <div class="chart-legend" aria-label="圆环图例"><span><i class="legend-dot a-color" aria-hidden="true"></i>A 球</span><span><i class="legend-square b-color" aria-hidden="true"></i>B 球</span><span><i class="legend-diamond legend-hollow q-color" aria-hidden="true"></i>P 辅助点</span></div>
+          <svg id="circle-svg" data-lab-export aria-label="圆环图" viewBox="0 0 620 450" role="img" aria-labelledby="circle-title circle-caption" preserveAspectRatio="xMidYMid meet">
+            <title>A、B在固定圆环上运动，辅助点P以加权弧速率V沿圆环转动</title>
+            <desc>蓝色A球、绿色B球与橙色空心菱形辅助点P；两球在第一次碰撞处开始计程。</desc>
+            <circle cx="290" cy="218" r="164" fill="#f5f8fb" stroke="#d9e1e8" stroke-width="12"></circle>
+            <circle cx="290" cy="218" r="164" fill="none" stroke="#9babbd" stroke-width="1.5"></circle>
+            <circle cx="290" cy="218" r="4" fill="#53677d"></circle>
+            <text x="278" y="241" fill="#718096" font-size="16">O</text>
+            <circle cx="454" cy="218" r="12" fill="#2866ad" stroke="white" stroke-width="3"></circle>
+          </svg>
+          <p id="circle-caption" class="chart-caption">计时从第 1 次碰撞刚后开始。P 将累计加权弧坐标 Q 绕回圆环，以速率 V 转动。</p>
+          <div class="stage-note"><span class="note-symbol" aria-hidden="true">↻</span><p id="stage-explanation">B 比 A 快，正在追赶一整圈；下一次相遇后，快慢关系反转。</p></div>
+          <div class="relative-metric"><span>当前相对速度 <i>v</i><sub>B</sub> − <i>v</i><sub>A</sub></span><strong><output id="relative-value">1.500</output><small>m/s</small></strong></div>
+        </section>
+
+        <section class="visual-panel card unfolded-panel" aria-labelledby="unfolded-title">
+          <div class="chart-heading"><div><span class="chart-kicker">沿圆环连续展开</span><h2 id="unfolded-title">累计弧坐标与 Q</h2></div><div class="chart-actions"><label for="plot-mode" class="sr-only">展开图时间范围</label><select id="plot-mode" aria-label="展开图时间范围"><option value="full" selected>全过程</option><option value="segment">当前碰撞区间</option></select><span class="chart-pill">ℓ = 2πR</span></div></div>
+          <div class="chart-legend" aria-label="展开图例"><span><i class="legend-line a-color" aria-hidden="true"></i>s<sub>A</sub></span><span><i class="legend-line b-color" aria-hidden="true"></i>s<sub>B</sub></span><span><i class="legend-line dashed q-color" aria-hidden="true"></i>Q</span></div>
+          <svg id="unfolded-svg" data-lab-export aria-label="累计弧坐标图" viewBox="0 0 780 450" role="img" aria-labelledby="unfolded-title unfolded-caption" preserveAspectRatio="xMidYMid meet">
+            <title>A、B累计弧坐标与质量加权位置Q随时间的变化</title>
+            <desc>A与B的曲线在碰撞时改变斜率，Q始终为一条直线。</desc>
+            <path d="M70 35 V380 H745" fill="none" stroke="#8c9aab" stroke-width="1.5"></path>
+            <path d="M70 380 L270 190 L700 45" fill="none" stroke="#328873" stroke-width="3"></path>
+            <path d="M70 380 L270 290 L700 45" fill="none" stroke="#2866ad" stroke-width="3"></path>
+            <path d="M70 380 L700 45" fill="none" stroke="#c77b27" stroke-width="2.5" stroke-dasharray="9 6"></path>
+          </svg>
+          <p id="unfolded-caption" class="chart-caption">两球的累计位置分段变化；Q 匀速前进。点击碰撞按钮可逐次比较。</p>
+          <div class="gap-heading"><h3>两球累计坐标之差</h3><strong><output id="gap-value">0.000</output><small>m</small></strong></div>
+          <svg id="gap-svg" data-lab-export viewBox="0 0 780 150" role="img" aria-label="B与A的累计弧坐标之差，在0与一个周长之间往返" preserveAspectRatio="xMidYMid meet">
+            <title>展开坐标差sB减sA在0与一个周长之间往返</title>
+            <path d="M70 110 L275 30 L700 110" fill="none" stroke="#778ca2" stroke-width="3"></path>
+          </svg>
+        </section>
+      </div>
+
+      <section class="endpoint-panel card" aria-labelledby="endpoint-title">
+        <div class="endpoint-heading"><span class="endpoint-tag">第三问的关键</span><h2 id="endpoint-title">奇数次碰撞时，两球累计路程相同</h2></div>
+        <div class="position-metrics" aria-label="当前累计弧坐标"><div><span>A 累计路程</span><strong><output id="sa-value">0.000</output><small>m</small></strong></div><div><span>B 累计路程</span><strong><output id="sb-value">0.000</output><small>m</small></strong></div><div><span>展开加权位置 Q</span><strong><output id="q-value">0.000</output><small>m</small></strong></div><div class="endpoint-answer"><span>终点 B 路程</span><strong><output id="answer-value">25.133</output><small>m</small></strong></div></div>
+        <p id="endpoint-note">在第 2n + 1 次碰撞处，s<sub>A</sub> = s<sub>B</sub> = Q；可直接用恒定的 V 乘以总时间求路程。</p>
+      </section>
+
+      <section class="events-panel card" aria-labelledby="events-title">
+        <div class="events-heading"><div><span class="chart-kicker">逐次观察</span><h2 id="events-title">碰撞时刻表</h2></div><p>当前已到第 <strong id="current-event">1</strong> 次碰撞</p></div>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="碰撞时刻表，可横向滚动">
+          <table><thead><tr><th scope="col">碰撞次数</th><th scope="col">累计时间 / s</th><th scope="col">碰撞位置 / °</th><th scope="col">碰后 v<sub>A</sub> / m·s<sup>−1</sup></th><th scope="col">碰后 v<sub>B</sub> / m·s<sup>−1</sup></th></tr></thead><tbody id="event-rows"><tr class="current"><th scope="row">第 1 次</th><td>0.000</td><td>0.0</td><td>1.500</td><td>3.000</td></tr></tbody></table>
+        </div>
+        <p class="table-note">时刻从第一次碰撞起算，表中速度为碰撞刚结束后的沿环速率。后续间隔会逐渐变长，可跳至下一次碰撞观察。</p>
+      </section>
+      <footer class="app-footer"><span>初速度改变运动快慢；播放倍速只改变观看节奏。 <button type="button" id="download-offline">下载离线版</button><span id="offline-status" role="status"></span></span><span>固定光滑圆环 · 瞬时碰撞 · m<sub>A</sub> &gt; m<sub>B</sub></span></footer>
+    </div>
+  </div>
+  <noscript><p class="noscript-note">请在浏览器中启用 JavaScript，以播放圆环碰撞动态演示。</p></noscript>
+</main>
+</body>
+</html>

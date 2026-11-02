@@ -92,7 +92,7 @@ for (const file of htmlFiles) {
     const required = [
         [nodes.some((node) => node.tagName === "title" && text(node).trim()), "缺少标题"],
         [nodes.some((node) => node.tagName === "meta" && attr(node, "name") === "viewport"), "缺少 viewport"],
-        [nodes.some((node) => node.tagName === "canvas"), "缺少 Canvas"],
+        [nodes.some((node) => node.tagName === "canvas" || (node.tagName === "svg" && attr(node, "data-lab-export") !== undefined)), "缺少 Canvas 或可导出的 SVG 演示"],
         [nodes.some((node) => node.tagName === "a" && attr(node, "href") === "/"), "缺少返回展厅入口"],
         [nodes.some((node) => node.tagName === "link" && attr(node, "href") === "/lab-common.css"), "未加载公共样式"],
         [nodes.some((node) => node.tagName === "script" && attr(node, "src") === "/lab-runtime.js"), "未加载公共运行时"],
