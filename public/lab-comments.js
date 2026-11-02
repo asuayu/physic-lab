@@ -34,6 +34,8 @@
         turnstileToken: "",
         turnstileWidgetId: null,
         maxLength: 800,
+        submitting: false,
+        pendingSubmission: null,
     };
 
     const element = (tag, className, text) => {
@@ -57,11 +59,10 @@
             <button class="pl-comments-launcher" type="button" aria-haspopup="dialog" aria-expanded="false">
                 <span aria-hidden="true">💬</span><span class="pl-comments-launcher-label">留言</span><span class="pl-comments-count" hidden>0</span>
             </button>
-            <div class="pl-comments-overlay" aria-hidden="true"></div>
-            <section class="pl-comments-drawer" role="dialog" aria-modal="true" aria-labelledby="pl-comments-title" aria-hidden="true">
+            <dialog class="pl-comments-drawer" aria-labelledby="pl-comments-title" aria-describedby="pl-comments-subtitle">
                 <header class="pl-comments-head">
-                    <div><h2 id="pl-comments-title">互动留言</h2><p></p></div>
-                    <button class="pl-comments-icon-button" type="button" aria-label="关闭留言">×</button>
+                    <div><h2 id="pl-comments-title">互动留言</h2><p id="pl-comments-subtitle"></p></div>
+                    <button class="pl-comments-icon-button" type="button" aria-label="关闭留言" autofocus>×</button>
                 </header>
                 <div class="pl-comments-list" aria-live="polite"><div class="pl-comments-state">打开后加载留言…</div></div>
                 <form class="pl-comments-composer">
@@ -74,7 +75,7 @@
                     <div class="pl-comments-form-footer"><span class="pl-comments-character-count">0 / 800</span><button class="pl-comments-submit" type="submit">发布留言</button></div>
                     <p class="pl-comments-message" role="status"></p>
                 </form>
-            </section>`;
+            </dialog>`;
         document.body.appendChild(root);
 
         const refs = {
@@ -82,7 +83,6 @@
             launcher: root.querySelector(".pl-comments-launcher"),
             launcherLabel: root.querySelector(".pl-comments-launcher-label"),
             count: root.querySelector(".pl-comments-count"),
-            overlay: root.querySelector(".pl-comments-overlay"),
             drawer: root.querySelector(".pl-comments-drawer"),
             close: root.querySelector(".pl-comments-icon-button"),
             title: root.querySelector("#pl-comments-title"),
@@ -168,9 +168,15 @@
             article.append(actions);
         }
 
-        if (!isReply && comment.replies?.length) {
+        if (!isReply && (comment.replies?.length || comment.hasMoreReplies)) {
             const replies = element("div", "pl-comment-replies");
-            for (const reply of comment.replies) replies.append(makeComment(reply, true));
+            for (const reply of comment.replies || []) replies.append(makeComment(reply, true));
+            if (comment.hasMoreReplies) {
+                const more = element("button", "pl-comments-more", `加载更多回复（共 ${comment.replyCount} 条）`);
+                more.type = "button";
+                more.addEventListener("click", () => loadReplies(comment, more));
+                replies.append(more);
+            }
             article.append(replies);
         }
         return article;
@@ -192,6 +198,7 @@
     }
 
     function startReply(comment) {
+        state.pendingSubmission = null;
         state.replyTo = comment;
         ui.replying.dataset.visible = "true";
         ui.replyingText.textContent = `回复 ${comment.nickname}`;
@@ -199,6 +206,7 @@
     }
 
     function cancelReply() {
+        state.pendingSubmission = null;
         state.replyTo = null;
         ui.replying.dataset.visible = "false";
         ui.replyingText.textContent = "";
@@ -210,8 +218,38 @@
         try {
             data = await response.json();
         } catch {}
-        if (!response.ok) throw new Error(data.error || `请求失败（${response.status}）`);
+        if (!response.ok) {
+            const error = new Error(data.error || `请求失败（${response.status}）`);
+            error.status = response.status;
+            throw error;
+        }
         return data;
+    }
+
+    async function loadReplies(comment, trigger) {
+        if (trigger.disabled) return;
+        trigger.disabled = true;
+        try {
+            const params = new URLSearchParams({ page: PAGE, limit: "15" });
+            if (comment.nextReplyCursor) params.set("after", String(comment.nextReplyCursor));
+            const data = await requestJson(`/api/comments/${comment.id}/replies?${params}`);
+            const known = new Set((comment.replies || []).map((reply) => reply.id));
+            const added = (data.replies || []).filter((reply) => !known.has(reply.id));
+            comment.replies = [...(comment.replies || []), ...added];
+            comment.hasMoreReplies = Boolean(data.hasMore);
+            comment.nextReplyCursor = data.nextCursor || null;
+            const container = trigger.parentElement;
+            for (const reply of added) container.insertBefore(makeComment(reply, true), trigger);
+            if (!comment.hasMoreReplies) {
+                const focusTarget = trigger.closest(".pl-comment")?.querySelector('[data-action="reply"]') || ui.close;
+                trigger.remove();
+                focusTarget.focus({ preventScroll: true });
+            }
+        } catch (error) { setMessage(error.message, "error"); }
+        finally {
+            trigger.disabled = false;
+            if (trigger.isConnected) trigger.focus({ preventScroll: true });
+        }
     }
 
     async function loadComments(append = false, trigger = null) {
@@ -223,7 +261,8 @@
             const params = new URLSearchParams({ page: PAGE, limit: "15" });
             if (append && state.nextCursor) params.set("before", String(state.nextCursor));
             const data = await requestJson(`/api/comments?${params}`);
-            state.comments = append ? state.comments.concat(data.comments || []) : data.comments || [];
+            const known = new Set(state.comments.map((comment) => comment.id));
+            state.comments = append ? state.comments.concat((data.comments || []).filter((comment) => !known.has(comment.id))) : data.comments || [];
             state.total = Number(data.total || 0);
             state.hasMore = Boolean(data.hasMore);
             state.nextCursor = data.nextCursor || null;
@@ -236,7 +275,12 @@
             renderComments();
             await setupTurnstile();
         } catch (error) {
-            if (!append) ui.list.replaceChildren(element("div", "pl-comments-state", `留言加载失败：${error.message}`));
+            if (!append) {
+                const retry = element("button", "pl-comments-more", "重新加载留言");
+                retry.type = "button";
+                retry.addEventListener("click", () => loadComments(false, retry));
+                ui.list.replaceChildren(element("div", "pl-comments-state", `留言加载失败：${error.message}`), retry);
+            }
             else setMessage(error.message, "error");
         } finally {
             state.loading = false;
@@ -309,6 +353,7 @@
 
     async function submitComment(event) {
         event.preventDefault();
+        if (state.submitting) return;
         if (state.turnstileRequired && !state.turnstileToken) {
             setMessage("请先完成人机验证。", "error");
             return;
@@ -320,6 +365,12 @@
             return;
         }
 
+        const payload = { page: PAGE, nickname, content, parentId: state.replyTo?.id || null };
+        const fingerprint = JSON.stringify(payload);
+        if (state.pendingSubmission?.fingerprint !== fingerprint) {
+            state.pendingSubmission = { fingerprint, requestId: crypto.randomUUID() };
+        }
+        state.submitting = true;
         ui.submit.disabled = true;
         setMessage("正在发布…");
         try {
@@ -327,10 +378,8 @@
                 method: "POST",
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify({
-                    page: PAGE,
-                    nickname,
-                    content,
-                    parentId: state.replyTo?.id || null,
+                    ...payload,
+                    requestId: state.pendingSubmission.requestId,
                     website: ui.website.value,
                     turnstileToken: state.turnstileToken,
                 }),
@@ -339,6 +388,7 @@
                 localStorage.setItem("physicsLab.commentNickname", nickname);
             } catch {}
             ui.content.value = "";
+            state.pendingSubmission = null;
             ui.characterCount.textContent = `0 / ${state.maxLength}`;
             cancelReply();
             resetTurnstile();
@@ -349,6 +399,7 @@
             setMessage(error.message, "error");
             resetTurnstile();
         } finally {
+            state.submitting = false;
             if (!state.turnstileRequired) ui.submit.disabled = false;
         }
     }
@@ -377,29 +428,44 @@
         }
     }
 
+    let previousFocus = null;
+    let previousOverflow = "";
     function setOpen(open) {
+        if (state.open === open) return;
         state.open = open;
         ui.root.dataset.open = open ? "true" : "false";
         ui.launcher.setAttribute("aria-expanded", String(open));
-        ui.drawer.setAttribute("aria-hidden", String(!open));
-        ui.overlay.setAttribute("aria-hidden", String(!open));
         if (open) {
+            previousFocus = document.activeElement;
+            previousOverflow = document.documentElement.style.overflow;
+            document.documentElement.style.overflow = "hidden";
+            ui.drawer.showModal();
             if (!state.loaded) loadComments();
-            setTimeout(() => ui.close.focus(), 0);
+            ui.close.focus();
         } else {
-            ui.launcher.focus();
+            ui.drawer.close();
+            document.documentElement.style.overflow = previousOverflow;
+            (previousFocus?.isConnected ? previousFocus : ui.launcher).focus({ preventScroll: true });
         }
     }
 
     function bindEvents() {
         ui.launcher.addEventListener("click", () => setOpen(true));
         ui.close.addEventListener("click", () => setOpen(false));
-        ui.overlay.addEventListener("click", () => setOpen(false));
+        ui.drawer.addEventListener("cancel", (event) => { event.preventDefault(); setOpen(false); });
+        ui.drawer.addEventListener("close", () => { if (state.open) setOpen(false); });
+        ui.drawer.addEventListener("click", (event) => {
+            if (event.target !== ui.drawer) return;
+            const rect = ui.drawer.getBoundingClientRect();
+            if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) setOpen(false);
+        });
         ui.cancelReply.addEventListener("click", cancelReply);
         ui.form.addEventListener("submit", submitComment);
         ui.content.addEventListener("input", () => {
+            state.pendingSubmission = null;
             ui.characterCount.textContent = `${[...ui.content.value].length} / ${state.maxLength}`;
         });
+        ui.nickname.addEventListener("input", () => { state.pendingSubmission = null; });
         document.addEventListener("keydown", (event) => {
             if (event.key === "Escape" && state.open) setOpen(false);
         });

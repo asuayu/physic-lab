@@ -24,6 +24,43 @@ canvas:focus-visible {
     min-height: 0;
 }
 
+.lab-tools {
+    position: fixed;
+    right: 18px;
+    bottom: max(76px, calc(env(safe-area-inset-bottom) + 64px));
+    z-index: 9996;
+    max-width: min(300px, calc(100vw - 110px));
+    border: 1px solid #31516a;
+    border-radius: 12px;
+    padding: 9px 12px;
+    color: #cfe4ee;
+    background: #0b2133f5;
+    font: 13px/1.5 "Segoe UI", "Microsoft YaHei", sans-serif;
+    box-shadow: 0 6px 20px #0005;
+}
+
+.lab-tools summary { cursor: pointer; }
+.lab-tools button,
+.lab-tools select {
+    display: block;
+    width: 100%;
+    min-height: 40px;
+    margin-top: 8px;
+    border: 1px solid #31516a;
+    border-radius: 7px;
+    padding: 6px;
+    color: inherit;
+    background: #102338;
+    font: inherit;
+    cursor: pointer;
+}
+.lab-tools-status { display: block; font-size: 12px; }
+.lab-tools-status:empty { display: none; }
+.lab-model-note { margin: 8px 0 0; color: #a8c0cf; font-size: 12px; }
+.lab-tools summary:focus-visible { outline: 3px solid #38bdf8; outline-offset: 3px; }
+
+body:has(.lab-tools) .physics-env { bottom: 136px !important; }
+
 @media (max-width: 900px) {
     body:not(.document-lab) {
         flex-direction: column;

@@ -185,6 +185,8 @@
     </style>
     <link rel="stylesheet" href="/lab-common.css">
     <script src="/lab-runtime.js"></script>
+    <meta name="description" content="自由调整双源独立起振时间与方向，全场景解构波的相干原理。">
+    <meta name="lab-model" content="模型：线性介质中的理想波叠加，不计传播损耗；位置参数用 px、时间用 s，画面横向自动缩放以保留两波源。只有频率相同且相位关系稳定时才形成稳定干涉图样。">
 </head>
 <body>
 <a href="/" class="btn-home"> 🏠 返回展厅 </a>
@@ -195,8 +197,8 @@
     <div class="box">
         <div class="box-title">视图模式</div>
         <div class="btn-group">
-            <button id="btn_1d" onclick="setViewMode('1D')" class="active">1D 剖面</button>
-            <button id="btn_2d" onclick="setViewMode('2D')">2D 平面图</button>
+            <button id="btn_1d" data-lab-share onclick="setViewMode('1D')" class="active">1D 剖面</button>
+            <button id="btn_2d" data-lab-share onclick="setViewMode('2D')">2D 平面图</button>
         </div>
         <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
             <label class="checkbox-label">
@@ -233,8 +235,8 @@
         <div class="control-row">
             <label>起初振动方向:</label>
             <div class="btn-group">
-                <button id="btn_s1_up" class="active" onclick="setDir(1, 1)">向上 (+A)</button>
-                <button id="btn_s1_down" onclick="setDir(1, -1)">向下 (-A)</button>
+                <button id="btn_s1_up" data-lab-share class="active" onclick="setDir(1, 1)">向上 (+A)</button>
+                <button id="btn_s1_down" data-lab-share onclick="setDir(1, -1)">向下 (-A)</button>
             </div>
         </div>
     </div>
@@ -252,8 +254,8 @@
         <div class="control-row">
             <label>起初振动方向:</label>
             <div class="btn-group">
-                <button id="btn_s2_up" class="active" onclick="setDir(2, 1)">向上 (+A)</button>
-                <button id="btn_s2_down" onclick="setDir(2, -1)">向下 (-A)</button>
+                <button id="btn_s2_up" data-lab-share class="active" onclick="setDir(2, 1)">向上 (+A)</button>
+                <button id="btn_s2_down" data-lab-share onclick="setDir(2, -1)">向下 (-A)</button>
             </div>
         </div>
     </div>
@@ -280,6 +282,7 @@
 <script>
     const canvas = document.getElementById('simCanvas');
     const ctx = canvas.getContext('2d', { alpha: false });
+    let viewWidth = 0, viewHeight = 0;
 
     const ui = {
         lambda: document.getElementById('param_lambda'),
@@ -339,18 +342,19 @@
 
     function resize() {
         const container = document.getElementById('canvas-container');
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
+        ({ width: viewWidth, height: viewHeight } = PhysicsLab.resizeCanvas(canvas, {
+            width: container.clientWidth, height: container.clientHeight
+        }));
 
-        state.bufferCanvas.width = Math.floor(canvas.width * state.resScale);
-        state.bufferCanvas.height = Math.floor(canvas.height * state.resScale);
+        state.bufferCanvas.width = Math.floor(viewWidth * state.resScale);
+        state.bufferCanvas.height = Math.floor(viewHeight * state.resScale);
         state.imgData = state.bufferCtx.createImageData(state.bufferCanvas.width, state.bufferCanvas.height);
         state.data = state.imgData.data;
         ctx.imageSmoothingEnabled = true;
 
         if (state.isPaused) drawCurrentView();
     }
-    window.addEventListener('resize', resize);
+    PhysicsLab.observeResize(canvas.parentElement, resize);
 
     ui.lambda.addEventListener('input', e => { state.lambda = parseFloat(e.target.value); ui.val_lambda.textContent = state.lambda; updateDerived(); if (state.isPaused) drawCurrentView(); });
     ui.d.addEventListener('input', e => { state.d = parseFloat(e.target.value); ui.val_d.textContent = state.d; if (state.isPaused) drawCurrentView(); });
@@ -398,8 +402,9 @@
         ui.btnPause.textContent = state.isPaused ? "▶ 继续" : "⏸ 暂停";
         ui.btnPause.classList.toggle('danger', state.isPaused);
         if (!state.isPaused) {
-            lastTime = performance.now();
-            requestAnimationFrame(animate);
+            animation.start();
+        } else {
+            animation.pause();
         }
     }
 
@@ -460,20 +465,21 @@
 
     function draw1D() {
         ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, viewWidth, viewHeight);
         
-        const cx = canvas.width / 2;
-        const cy = canvas.height / 2;
+        const cx = viewWidth / 2;
+        const cy = viewHeight / 2;
         
         // 坐标轴
         ctx.strokeStyle = '#334155';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(0, cy);
-        ctx.lineTo(canvas.width, cy);
+        ctx.lineTo(viewWidth, cy);
         ctx.stroke();
 
         const maxVisualAmp = 80;
+        const spaceScale = Math.min(1, Math.max(0.1, (viewWidth - 80) / (state.d + 100)));
 
         let pathS1 = new Path2D();
         let pathS2 = new Path2D();
@@ -481,24 +487,24 @@
         let pathS1Comp = new Path2D();
         let pathS2Comp = new Path2D();
 
-        let prevPx = cx - canvas.width/2;
+        let prevPx = cx - viewWidth/2;
         let prevA1 = 0, prevA2 = 0;
         let prevW1 = false, prevW2 = false;
 
         const s1x = -state.d / 2;
         const s2x = state.d / 2;
 
-        for (let x = -canvas.width/2; x <= canvas.width/2; x += 2) {
+        for (let px = 0; px <= viewWidth; px += 2) {
+            const x = (px - cx) / spaceScale;
             const r1 = Math.abs(x - s1x);
             const r2 = Math.abs(x - s2x);
             const w1 = (state.t - state.delay1) * state.v >= r1;
             const w2 = (state.t - state.delay2) * state.v >= r2;
             
-            const px = cx + x;
             const a1 = getAmp1(x) * maxVisualAmp;
             const a2 = getAmp2(x) * maxVisualAmp;
             
-            if (x > -canvas.width/2) {
+            if (px > 0) {
                 const isW1 = w1 || prevW1;
                 const isW2 = w2 || prevW2;
                 
@@ -547,10 +553,10 @@
             let y1_total = cy - (a1_s1x + a2_s1x);
             ctx.strokeStyle = 'rgba(239, 68, 68, 0.2)'; 
             ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(cx + s1x, cy); ctx.lineTo(cx + s1x, y1_total); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cx + s1x * spaceScale, cy); ctx.lineTo(cx + s1x * spaceScale, y1_total); ctx.stroke();
             
             ctx.fillStyle = '#ef4444';
-            ctx.beginPath(); ctx.arc(cx + s1x, cy - a1_s1x, 5, 0, 2*Math.PI); ctx.fill();
+            ctx.beginPath(); ctx.arc(cx + s1x * spaceScale, cy - a1_s1x, 5, 0, 2*Math.PI); ctx.fill();
             
             let a1_s2x = getAmp1(s2x) * maxVisualAmp;
             let a2_s2x = getAmp2(s2x) * maxVisualAmp;
@@ -558,19 +564,20 @@
             let y2_total = cy - (a1_s2x + a2_s2x);
             ctx.strokeStyle = 'rgba(59, 130, 246, 0.2)'; 
             ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(cx + s2x, cy); ctx.lineTo(cx + s2x, y2_total); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cx + s2x * spaceScale, cy); ctx.lineTo(cx + s2x * spaceScale, y2_total); ctx.stroke();
 
             ctx.fillStyle = '#3b82f6';
-            ctx.beginPath(); ctx.arc(cx + s2x, cy - a2_s2x, 5, 0, 2*Math.PI); ctx.fill();
+            ctx.beginPath(); ctx.arc(cx + s2x * spaceScale, cy - a2_s2x, 5, 0, 2*Math.PI); ctx.fill();
         }
     }
 
     function draw2D() {
         ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, viewWidth, viewHeight);
         
-        const cx = canvas.width / 2;
-        const cy = canvas.height / 2;
+        const cx = viewWidth / 2;
+        const cy = viewHeight / 2;
+        const spaceScale = Math.min(1, Math.max(0.1, (viewWidth - 80) / (state.d + 100)));
         
         ctx.lineJoin = 'round';
 
@@ -592,13 +599,13 @@
             // r = v * (t_eff - n * T)
             // 即 r = r_max - n * lambda
             
-            let n = 0;
+            let n = Math.max(0, Math.floor((r_max - maxRadius) / state.lambda - phaseShift) - 1);
             while (true) {
                 // 波峰圆 (实线)
                 let r_crest = r_max - (n + phaseShift) * state.lambda;
                 if (r_crest > 0 && r_crest <= maxRadius) {
                     ctx.beginPath();
-                    ctx.arc(sourceX, sourceY, r_crest, 0, 2*Math.PI);
+                    ctx.arc(sourceX, sourceY, r_crest * spaceScale, 0, 2*Math.PI);
                     ctx.strokeStyle = colorStr;
                     ctx.setLineDash([]); // 实线
                     ctx.lineWidth = 2;
@@ -609,7 +616,7 @@
                 let r_trough = r_max - (n + 0.5 + phaseShift) * state.lambda;
                 if (r_trough > 0 && r_trough <= maxRadius) {
                     ctx.beginPath();
-                    ctx.arc(sourceX, sourceY, r_trough, 0, 2*Math.PI);
+                    ctx.arc(sourceX, sourceY, r_trough * spaceScale, 0, 2*Math.PI);
                     ctx.strokeStyle = colorStr;
                     ctx.setLineDash([5, 5]); // 虚线
                     ctx.lineWidth = 1.5;
@@ -621,9 +628,9 @@
             }
         }
 
-        const s1x = cx - state.d / 2;
-        const s2x = cx + state.d / 2;
-        const maxR = Math.max(canvas.width, canvas.height); // 画满屏幕
+        const s1x = cx - state.d / 2 * spaceScale;
+        const s2x = cx + state.d / 2 * spaceScale;
+        const maxR = Math.max(viewWidth, viewHeight) / spaceScale; // 画满屏幕
 
         // 绘制 S1 红色波前 和 S2 蓝色波前
         drawWavefronts(s1x, cy, 'rgba(239, 68, 68, 0.8)', state.delay1, state.dir1, maxR);
@@ -641,10 +648,10 @@
         const step = 8;
         ctx.lineWidth = 1.5;
 
-        for (let y = 0; y < canvas.height; y += step) {
-            for (let x = 0; x < canvas.width; x += step) {
-                const rx_real = x - cx;
-                const ry_real = y - cy;
+        for (let y = 0; y < viewHeight; y += step) {
+            for (let x = 0; x < viewWidth; x += step) {
+                const rx_real = (x - cx) / spaceScale;
+                const ry_real = (y - cy) / spaceScale;
                 
                 const r1 = Math.sqrt((rx_real + state.d/2)**2 + ry_real**2);
                 const r2 = Math.sqrt((rx_real - state.d/2)**2 + ry_real**2);
@@ -683,24 +690,24 @@
 
         // 绘制图例
         ctx.fillStyle = 'rgba(30, 41, 59, 0.8)';
-        ctx.fillRect(canvas.width - 160, canvas.height - 120, 140, 100);
-        ctx.strokeStyle = '#334155'; ctx.strokeRect(canvas.width - 160, canvas.height - 120, 140, 100);
+        ctx.fillRect(viewWidth - 160, viewHeight - 120, 140, 100);
+        ctx.strokeStyle = '#334155'; ctx.strokeRect(viewWidth - 160, viewHeight - 120, 140, 100);
         
         ctx.font = '12px sans-serif';
         ctx.fillStyle = '#f8fafc';
-        ctx.fillText("图 例:", canvas.width - 150, canvas.height - 100);
+        ctx.fillText("图 例:", viewWidth - 150, viewHeight - 100);
         
-        ctx.strokeStyle = '#f8fafc'; ctx.beginPath(); ctx.moveTo(canvas.width - 150, canvas.height - 80); ctx.lineTo(canvas.width - 130, canvas.height - 80); ctx.stroke();
-        ctx.fillText("波峰 (实线)", canvas.width - 120, canvas.height - 76);
+        ctx.strokeStyle = '#f8fafc'; ctx.beginPath(); ctx.moveTo(viewWidth - 150, viewHeight - 80); ctx.lineTo(viewWidth - 130, viewHeight - 80); ctx.stroke();
+        ctx.fillText("波峰 (实线)", viewWidth - 120, viewHeight - 76);
         
-        ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(canvas.width - 150, canvas.height - 60); ctx.lineTo(canvas.width - 130, canvas.height - 60); ctx.stroke(); ctx.setLineDash([]);
-        ctx.fillText("波谷 (虚线)", canvas.width - 120, canvas.height - 56);
+        ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(viewWidth - 150, viewHeight - 60); ctx.lineTo(viewWidth - 130, viewHeight - 60); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillText("波谷 (虚线)", viewWidth - 120, viewHeight - 56);
         
-        ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(canvas.width - 140, canvas.height - 40, 3.5, 0, 2*Math.PI); ctx.fill();
-        ctx.fillStyle = '#f8fafc'; ctx.fillText("加强点", canvas.width - 120, canvas.height - 36);
+        ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(viewWidth - 140, viewHeight - 40, 3.5, 0, 2*Math.PI); ctx.fill();
+        ctx.fillStyle = '#f8fafc'; ctx.fillText("加强点", viewWidth - 120, viewHeight - 36);
         
-        ctx.strokeStyle = '#3b82f6'; ctx.beginPath(); ctx.arc(canvas.width - 140, canvas.height - 20, 3.5, 0, 2*Math.PI); ctx.stroke();
-        ctx.fillStyle = '#f8fafc'; ctx.fillText("减弱点", canvas.width - 120, canvas.height - 16);
+        ctx.strokeStyle = '#3b82f6'; ctx.beginPath(); ctx.arc(viewWidth - 140, viewHeight - 20, 3.5, 0, 2*Math.PI); ctx.stroke();
+        ctx.fillStyle = '#f8fafc'; ctx.fillText("减弱点", viewWidth - 120, viewHeight - 16);
 
 
         if (ui.chk_sources.checked) {
@@ -720,20 +727,15 @@
         updateStatus();
     }
 
-    let lastTime = performance.now();
-    function animate(time) {
-        if (!state.isPaused) {
-            const dt = Math.min((time - lastTime) / 1000, 0.05);
-            state.t += dt * state.timeScale;
-            drawCurrentView();
-            requestAnimationFrame(animate);
-        }
-        lastTime = time;
-    }
+    const animation = PhysicsLab.createAnimation({
+        update(dt) { state.t += dt * state.timeScale; },
+        render: drawCurrentView,
+        isActive: () => !state.isPaused,
+    });
 
     resize();
     updateDerived();
-    requestAnimationFrame(animate);
+    animation.start();
 
 </script>
 </body>

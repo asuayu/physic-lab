@@ -24,3 +24,8 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# Local verification output and package downloads (keep other project artifacts visible)
+artifacts/npm-cache/
+artifacts/browser/
+artifacts/optimization-verification/

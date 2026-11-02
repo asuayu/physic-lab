@@ -153,6 +153,8 @@
     </style>
     <link rel="stylesheet" href="/lab-common.css">
     <script src="/lab-runtime.js"></script>
+    <meta name="description" content="双球同源坠落，由水平动态连线验证垂直方向上的运动彼此等效、独立且等时。">
+    <meta name="lab-model" content="模型：均匀重力，不计空气阻力，两球初始竖直速度均为零；长度用 px、时间用 s。位置按运动学公式计算。">
 </head>
 <body>
 <a href="/" class="btn-home"> 🏠 返回展厅 </a>
@@ -204,6 +206,7 @@
 <script>
     const canvas = document.getElementById('simCanvas');
     const ctx = canvas.getContext('2d');
+    let viewWidth = 0, viewHeight = 0;
     
     // 物理全局常量
     let g = 300;     // 重力加速度 px/s^2    
@@ -243,16 +246,17 @@
 
     function resize() {
         const container = document.getElementById('canvas-container');
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
+        ({ width: viewWidth, height: viewHeight } = PhysicsLab.resizeCanvas(canvas, {
+            width: container.clientWidth, height: container.clientHeight
+        }));
         
         // 动态适配地面、发射台左边缘距
-        groundY = canvas.height - 40; 
+        groundY = viewHeight - 40;
         
         if(!state.running && !state.finished) resetSim();
         else drawFrame();
     }
-    window.addEventListener('resize', resize);
+    PhysicsLab.observeResize(canvas.parentElement, resize);
 
     ui.sliderV0.addEventListener('input', (e) => {
         state.v0 = parseFloat(e.target.value);
@@ -323,11 +327,11 @@
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
         ctx.lineWidth = 1;
         
-        for (let x = 0; x <= canvas.width; x += gridSize) {
-            ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height);
+        for (let x = 0; x <= viewWidth; x += gridSize) {
+            ctx.moveTo(x, 0); ctx.lineTo(x, viewHeight);
         }
-        for (let y = 0; y <= canvas.height; y += gridSize) {
-            ctx.moveTo(0, y); ctx.lineTo(canvas.width, y);
+        for (let y = 0; y <= viewHeight; y += gridSize) {
+            ctx.moveTo(0, y); ctx.lineTo(viewWidth, y);
         }
         ctx.stroke();
     }
@@ -356,7 +360,7 @@
     }
 
     function drawFrame() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, viewWidth, viewHeight);
 
         drawGrid(ctx);
 
@@ -364,13 +368,13 @@
         // 画地平线
         ctx.beginPath();
         ctx.moveTo(0, groundY); 
-        ctx.lineTo(canvas.width, groundY);
+        ctx.lineTo(viewWidth, groundY);
         ctx.strokeStyle = '#475569';
         ctx.lineWidth = 4;
         ctx.stroke();
         
         ctx.fillStyle = 'rgba(15, 23, 42, 0.9)'; // 地下的填色
-        ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+        ctx.fillRect(0, groundY, viewWidth, viewHeight - groundY);
 
         // 绘制支撑发射台的阴影塔
         ctx.fillStyle = '#1e293b';
@@ -413,7 +417,7 @@
             ctx.beginPath();
             ctx.moveTo(state.xA, state.y);
             // 延长一截，展示高度参照
-            ctx.lineTo(Math.max(canvas.width, state.xB + 200), state.y);
+            ctx.lineTo(Math.max(viewWidth, state.xB + 200), state.y);
             ctx.setLineDash([8, 6]);
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
             ctx.lineWidth = 2;

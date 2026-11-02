@@ -12,6 +12,7 @@
         <meta name="description" content="支持粘贴或导入名单的课堂随机转盘点名工具。" />
         <title>课堂转盘点名 | Physics Lab</title>
         <link rel="stylesheet" href="/lab-common.css" />
+        <script src="/lab-runtime.js"></script>
         <style>
             :root {
                 color-scheme: dark;
@@ -444,7 +445,8 @@
             const fullButton = document.getElementById("fullBtn");
             const fileInput = document.getElementById("fileInput");
             const TAU = Math.PI * 2;
-            const center = canvas.width / 2;
+            const wheelSize = 620;
+            const center = wheelSize / 2;
             const radius = 244;
             const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -505,7 +507,7 @@
             }
 
             function drawWheel() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.clearRect(0, 0, wheelSize, wheelSize);
                 if (!displayNames.length) return;
                 const arc = TAU / displayNames.length;
 
@@ -650,13 +652,13 @@
                 const startAngle = angle;
                 const targetAngle = angle + 6 * TAU + alignment;
                 const overshootAngle = targetAngle + arc * 0.64;
-                const duration = reduceMotion ? 800 : 5000;
+                const duration = reduceMotion ? 0 : 5000;
                 let startTime = null;
                 let lastSegment = -1;
 
                 function animate(timestamp) {
                     if (startTime === null) startTime = timestamp;
-                    const progress = Math.min(1, (timestamp - startTime) / duration);
+                    const progress = duration === 0 ? 1 : Math.min(1, (timestamp - startTime) / duration);
                     if (progress < 0.84) {
                         const phase = progress / 0.84;
                         const eased = 1 - Math.pow(1 - phase, 5);
@@ -742,8 +744,13 @@
                 }
             });
 
+            PhysicsLab.resizeCanvas(canvas, { width: wheelSize, height: wheelSize });
+            PhysicsLab.observeResize(canvas, () => {
+                PhysicsLab.resizeCanvas(canvas, { width: wheelSize, height: wheelSize });
+                drawWheel();
+            });
             applyRoster();
         </script>
-        <script src="/lab-runtime.js" defer></script>
+
     </body>
 </html>

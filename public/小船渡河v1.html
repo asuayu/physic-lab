@@ -158,6 +158,8 @@
     </style>
     <link rel="stylesheet" href="/lab-common.css">
     <script src="/lab-runtime.js"></script>
+    <meta name="description" content="自定义水流速度与静水船速，寻找划船过河的最短时间与最短位移解。">
+    <meta name="lab-model" content="模型：河水匀速、小船相对水速和航向恒定；距离按 1 px=1 m 映射、时间用 s，演示采用 3 倍速。合速度由矢量相加得到，到达河岸时精确截断最后一步。">
 </head>
 <body>
 <a href="/" class="btn-home"> 🏠 返回展厅 </a>
@@ -209,6 +211,7 @@
 <script>
     const canvas = document.getElementById('simCanvas');
     const ctx = canvas.getContext('2d');
+    let viewWidth = 0, viewHeight = 0;
     
     // 逻辑常量与状态
     const RIVER_WIDTH = 400; // 河流像素宽度
@@ -230,7 +233,6 @@
     };
 
     let animationId = null;
-    let lastFrameTime = 0;
 
     // UI 绑定
     const ui = {
@@ -246,18 +248,19 @@
 
     function resize() {
         const container = document.getElementById('canvas-container');
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
+        ({ width: viewWidth, height: viewHeight } = PhysicsLab.resizeCanvas(canvas, {
+            width: container.clientWidth, height: container.clientHeight
+        }));
         
         // 计算河流位置
-        groundY = canvas.height / 2 + RIVER_WIDTH / 2;
-        northY = canvas.height / 2 - RIVER_WIDTH / 2;
-        originX = canvas.width / 2; 
+        groundY = viewHeight / 2 + RIVER_WIDTH / 2;
+        northY = viewHeight / 2 - RIVER_WIDTH / 2;
+        originX = viewWidth / 2;
 
         if(!state.running && !state.finished) resetSim();
         else drawFrame();
     }
-    window.addEventListener('resize', resize);
+    PhysicsLab.observeResize(canvas.parentElement, resize);
 
     function updateParamsFromUI() {
         state.v1 = parseFloat(ui.sliderV1.value);
@@ -313,6 +316,7 @@
         state.running = false;
         state.finished = false;
         state.t = 0;
+        animation.pause();
         
         ui.btnPlay.innerHTML = '▶ 开始渡河';
         ui.btnPlay.classList.add('action-play');
@@ -330,7 +334,9 @@
         if (state.running) {
             ui.btnPlay.innerHTML = '⏸ 暂停';
             ui.btnPlay.style.background = '#eab308'; // 黄色暂停
+            animation.start();
         } else {
+            animation.pause();
             ui.btnPlay.innerHTML = '▶ 继续渡河';
             ui.btnPlay.style.background = 'var(--accent)';
         }
@@ -388,7 +394,7 @@
     }
 
     function drawFrame() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, viewWidth, viewHeight);
 
         // 绘制河流带有真实深度感的渐变色背景
         const gradient = ctx.createLinearGradient(0, northY, 0, groundY);
@@ -396,10 +402,10 @@
         gradient.addColorStop(0.5, '#0369a1');   // 中间稍微深
         gradient.addColorStop(1, '#0c4a6e');     // 近岸最深
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, northY, canvas.width, RIVER_WIDTH);
+        ctx.fillRect(0, northY, viewWidth, RIVER_WIDTH);
 
         // 绘制河水形态波浪 (随全局时间不断推移，与水流速关联)
-        const time = Date.now() / 1000;
+        const time = state.t;
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
         ctx.lineWidth = 1.5;
         // 把水体切割出几层波浪
@@ -408,7 +414,7 @@
             const yBase = northY + (RIVER_WIDTH / 7) * i;
             // 获取一个由水流速决定的位移偏移量
             const dx = (state.v1 * time * 0.5); 
-            for (let x = 0; x <= canvas.width; x += 20) {
+            for (let x = 0; x <= viewWidth; x += 20) {
                 // 利用正弦函数组合制造涟漪效果，同时随水流漂流
                 const waveY = Math.sin(x/40 - time*2 + i) * 3 + Math.sin((x - dx)/60 + time) * 4;
                 if (x === 0) ctx.moveTo(x, yBase + waveY);
@@ -419,8 +425,8 @@
 
         // 绘制河岸线
         ctx.beginPath();
-        ctx.moveTo(0, northY); ctx.lineTo(canvas.width, northY);
-        ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY);
+        ctx.moveTo(0, northY); ctx.lineTo(viewWidth, northY);
+        ctx.moveTo(0, groundY); ctx.lineTo(viewWidth, groundY);
         ctx.strokeStyle = '#cbd5e1';
         ctx.lineWidth = 2;
         ctx.stroke();
@@ -498,46 +504,38 @@
         }
     }
 
-    // 采用始终运作的全局主循环，以保证背景水波纹独立于船只持续渲染
-    function gameLoop(timestamp) {
-        const frameScale = PhysicsLab.frameScale(timestamp, lastFrameTime);
-        lastFrameTime = timestamp;
-
-        if (state.running) {
-            const dt = 0.05 * frameScale; // 保持 60 Hz 下原有速度，同时消除刷新率差异
-            
-            const rad = state.theta * Math.PI / 180;
-            const v_res_x = state.v1 + state.v2 * Math.cos(rad);
-            const v_res_y = -state.v2 * Math.sin(rad);
-
-            state.x += v_res_x * dt;
-            state.y += v_res_y * dt;
-            state.t += dt;
-
-            state.history.push({x: state.x, y: state.y});
-
-            // 终止条件：抵达北岸 (y <= northY)
-            if (state.y <= northY) {
-                state.y = northY;
-                state.history.push({x: state.x, y: state.y}); // 最后补一针
-                state.running = false;
-                state.finished = true;
-                ui.btnPlay.innerHTML = '↻ 重新开始';
-                ui.btnPlay.style.background = '#64748b'; // 灰色
-            }
-
-            updateStatus();
+    function advanceBoat(elapsed) {
+        const dt = elapsed * 3; // Preserve the original demonstration speed.
+        const rad = state.theta * Math.PI / 180;
+        const vx = state.v1 + state.v2 * Math.cos(rad);
+        const vy = -state.v2 * Math.sin(rad);
+        // Clip the last step to the bank, keeping the endpoint and elapsed time consistent.
+        const remaining = vy < 0 ? (northY - state.y) / vy : Infinity;
+        const step = Math.min(dt, Math.max(0, remaining));
+        state.x += vx * step;
+        state.y += vy * step;
+        state.t += step;
+        state.history.push({ x: state.x, y: state.y });
+        if (state.history.length > 6000) state.history.shift();
+        if (remaining <= dt) {
+            state.y = northY;
+            state.running = false;
+            state.finished = true;
+            ui.btnPlay.textContent = '↻ 重新开始';
+            ui.btnPlay.style.background = '#64748b';
         }
-
-        drawFrame();
-        requestAnimationFrame(gameLoop);
     }
+    const animation = PhysicsLab.createAnimation({
+        update: advanceBoat,
+        render() { updateStatus(); drawFrame(); },
+        isActive: () => state.running,
+    });
 
     // 初始化
     setTimeout(() => {
         resize();
         updateParamsFromUI();
-        requestAnimationFrame(gameLoop);
+        animation.invalidate();
     }, 100);
 
 </script>

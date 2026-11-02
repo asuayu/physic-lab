@@ -116,7 +116,7 @@
 
         .status-box {
             position: absolute;
-            top: 24px;
+            top: 68px;
             right: 24px;
             background: rgba(15, 23, 42, 0.85);
             backdrop-filter: blur(8px);
@@ -158,6 +158,8 @@
     </style>
     <link rel="stylesheet" href="/lab-common.css">
     <script src="/lab-runtime.js"></script>
+    <meta name="description" content="以万有引力引擎为核心，通过火箭点火瞬间加速体验圆轨道、椭圆与双曲线的变换。">
+    <meta name="lab-model" content="模型：固定中心天体、二维质点与万有引力，不计大气阻力和其他天体；距离用 px、时间用演示单位。点火瞬时改变速度，采用固定步长 Verlet 积分。">
 </head>
 <body>
 <a href="/" class="btn-home"> 🏠 返回展厅 </a>
@@ -201,6 +203,7 @@
 <script>
     const canvas = document.getElementById('simCanvas');
     const ctx = canvas.getContext('2d');
+    let viewWidth = 0, viewHeight = 0;
     
     // 天体物理常量设定 (为了在现有画布内能留出最大的空间展现双曲线和椭圆长轴，全盘微缩常数)
     const MU = 60000;       // 缩放版引力常数参数 GM (同步减小以控制原本舒服的公转周期不变)
@@ -227,6 +230,8 @@
 
     let animationId = null;
     let lastFrameTime = 0;
+    const physicsClock = PhysicsLab.createFixedStepper({ step: 0.005, maxElapsed: 0.5, maxSteps: 100 });
+    let lastStatusTime = 0;
     const MAX_TRAIL = 12000; // 极大幅度拉长尾迹限制：1万2千帧足以保留巨型拉扯椭圆的全闭合轨迹
 
     // UI 绑定
@@ -239,14 +244,15 @@
 
     function resize() {
         const container = document.getElementById('canvas-container');
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
-        state.cx = canvas.width / 2;
-        state.cy = canvas.height / 2;
+        ({ width: viewWidth, height: viewHeight } = PhysicsLab.resizeCanvas(canvas, {
+            width: container.clientWidth, height: container.clientHeight
+        }));
+        state.cx = viewWidth / 2;
+        state.cy = viewHeight / 2;
         
         if (state.paused) drawFrame(); // 刷新强制重绘
     }
-    window.addEventListener('resize', resize);
+    PhysicsLab.observeResize(canvas.parentElement, resize);
 
     ui.sliderSpeed.addEventListener('input', (e) => {
         state.simSpeed = parseFloat(e.target.value);
@@ -266,6 +272,7 @@
         ui.btnPause.innerHTML = '⏸ 暂停宇宙';
         ui.btnPause.style.background = '#475569';
         lastFrameTime = 0;
+        physicsClock.reset();
         drawFrame();
         animationId = requestAnimationFrame(animate);
     }
@@ -273,12 +280,16 @@
     function togglePause() {
         state.paused = !state.paused;
         if (state.paused) {
+            if (animationId) cancelAnimationFrame(animationId);
+            animationId = null;
+            physicsClock.reset();
             ui.btnPause.innerHTML = '▶ 恢复运转';
             ui.btnPause.style.background = 'var(--accent)';
         } else {
             ui.btnPause.innerHTML = '⏸ 暂停宇宙';
             ui.btnPause.style.background = '#475569';
             lastFrameTime = 0;
+            physicsClock.reset();
             animationId = requestAnimationFrame(animate);
         }
     }
@@ -371,14 +382,14 @@
     }
 
     function drawFrame() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, viewWidth, viewHeight);
 
         // 绘制星空零星碎点背景衬托气氛
         ctx.fillStyle = 'rgba(255,255,255,0.05)';
         for(let i=0; i<40; i++) {
             // 用固定随机种子或者就简单随动，这里用极其简单的静态星空代替
-            let sx = (i * 37) % canvas.width;
-            let sy = (i * 73) % canvas.height;
+            let sx = (i * 37) % viewWidth;
+            let sy = (i * 73) % viewHeight;
             ctx.fillRect(sx, sy, 2, 2);
         }
 
@@ -460,7 +471,7 @@
         if (!state.crashed) {
             ctx.beginPath();
             ctx.arc(state.x, state.y, 4, 0, Math.PI*2);
-            ctx.fillStyle = 'var(--sat)';
+            ctx.fillStyle = '#facc15';
             ctx.fill();
             ctx.shadowBlur = 10;
             ctx.shadowColor = '#facc15';
@@ -470,7 +481,7 @@
             // 速度矢量（按极化系数短比例展示防突破屏幕）
             let drawDx = state.vx * 1.5;
             let drawDy = state.vy * 1.5;
-            drawArrow(ctx, state.x, state.y, drawDx, drawDy, 'var(--v-color)', 2);
+            drawArrow(ctx, state.x, state.y, drawDx, drawDy, '#fca5a5', 2);
         }
 
         ctx.restore();
@@ -482,46 +493,28 @@
         const frameScale = PhysicsLab.frameScale(timestamp, lastFrameTime);
         lastFrameTime = timestamp;
 
-        // 由于轨道积分如果步长太大极易带来累计误差，所以将单帧划分为微小段多次积分 (Sub-stepping)
-        // 积分方式：Euler-Cromer 万有引力内核解算
-        const subSteps = 10; 
-        const dt = (0.05 * state.simSpeed * frameScale) / subSteps;
-
-        for (let i = 0; i < subSteps; i++) {
-            const r2 = state.x * state.x + state.y * state.y;
-            const r = Math.sqrt(r2);
-
-            // 撞击地球判定
-            if (r <= RE) {
-                state.crashed = true;
-                break;
-            }
-
-            // 万有引力加速度 (指向圆心：方向由 -x/r 确定)
-            // a = - (GM / r^2) * (x/r) = - GM * x / r^3
-            const ax = - MU * state.x / (r2 * r);
-            const ay = - MU * state.y / (r2 * r);
-
-            // Euler-Cromer update -> 先求出新梯速度，然后马上用来推新位移
-            state.vx += ax * dt;
-            state.vy += ay * dt;
-            
-            state.x += state.vx * dt;
-            state.y += state.vy * dt;
-        }
+        // Fixed physical steps keep numerical error independent of display refresh rate.
+        physicsClock.advance(0.05 * state.simSpeed * frameScale, (dt) => {
+            if (state.crashed) return;
+            if (Math.hypot(state.x, state.y) <= RE) { state.crashed = true; return; }
+            PhysicsLab.stepGravity(state, MU, dt);
+        });
 
         if (!state.crashed) {
             // 防止数据溢出限制保存阵列大小
-            state.orbitHistory.push({x: state.x, y: state.y});
+            const last = state.orbitHistory.at(-1);
+            if (!last || Math.hypot(last.x - state.x, last.y - state.y) > 0.5) {
+                state.orbitHistory.push({x: state.x, y: state.y});
+            }
             if (state.orbitHistory.length > MAX_TRAIL) {
                 state.orbitHistory.shift(); 
             }
         }
 
-        updateStatus();
+        if (timestamp - lastStatusTime >= 100 || state.crashed) { updateStatus(); lastStatusTime = timestamp; }
         drawFrame();
 
-        if (!state.paused) {
+        if (!state.paused && !state.crashed && !state.escaped) {
             animationId = requestAnimationFrame(animate);
         }
     }

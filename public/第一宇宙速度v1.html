@@ -110,7 +110,7 @@
 
         .status-box {
             position: absolute;
-            top: 24px;
+            top: 68px;
             right: 24px;
             background: rgba(15, 23, 42, 0.85);
             backdrop-filter: blur(8px);
@@ -149,6 +149,8 @@
     </style>
     <link rel="stylesheet" href="/lab-common.css">
     <script src="/lab-runtime.js"></script>
+    <meta name="description" content="在地球极点高山极速开炮，用不同初速度推演从抛物线坠落到贴地环绕入轨的质变。">
+    <meta name="lab-model" content="模型：球对称中心引力，不计空气阻力和地球自转；距离用 px、速度用演示单位。炮弹触地或完成两圈后停止计算。">
 </head>
 <body>
 <a href="/" class="btn-home"> 🏠 返回展厅 </a>
@@ -191,6 +193,7 @@
 <script>
     const canvas = document.getElementById('simCanvas');
     const ctx = canvas.getContext('2d');
+    let viewWidth = 0, viewHeight = 0;
     
     // 天体物理常量
     const MU = 1700000;    // 引力常数参数 GM
@@ -211,6 +214,7 @@
 
     let animationId = null;
     let lastFrameTime = 0;
+    const physicsClock = PhysicsLab.createFixedStepper({ step: 0.005, maxElapsed: 0.5, maxSteps: 100 });
 
     // UI 绑定
     const ui = {
@@ -221,13 +225,14 @@
 
     function resize() {
         const container = document.getElementById('canvas-container');
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
-        state.cx = canvas.width / 2;
-        state.cy = canvas.height / 2;
+        ({ width: viewWidth, height: viewHeight } = PhysicsLab.resizeCanvas(canvas, {
+            width: container.clientWidth, height: container.clientHeight
+        }));
+        state.cx = viewWidth / 2;
+        state.cy = viewHeight / 2;
         drawFrame();
     }
-    window.addEventListener('resize', resize);
+    PhysicsLab.observeResize(canvas.parentElement, resize);
 
     ui.sliderV.addEventListener('input', (e) => {
         ui.valV.textContent = e.target.value;
@@ -266,11 +271,16 @@
         if (!state.running) {
             state.running = true;
             lastFrameTime = 0;
+            physicsClock.reset();
             animationId = requestAnimationFrame(animate);
         }
     }
 
     function clearShells() {
+        state.running = false;
+        if (animationId) cancelAnimationFrame(animationId);
+        animationId = null;
+        physicsClock.reset();
         shells = [];
         updateStatus();
         drawFrame();
@@ -300,13 +310,13 @@
 
 
     function drawFrame() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, viewWidth, viewHeight);
 
         // 绘制星空
         ctx.fillStyle = 'rgba(255,255,255,0.05)';
         for(let i=0; i<50; i++) {
-            let sx = (i * 89) % canvas.width;
-            let sy = (i * 113) % canvas.height;
+            let sx = (i * 89) % viewWidth;
+            let sy = (i * 113) % viewHeight;
             ctx.fillRect(sx, sy, 2, 2);
         }
 
@@ -401,71 +411,36 @@
         const frameScale = PhysicsLab.frameScale(timestamp, lastFrameTime);
         lastFrameTime = timestamp;
 
-        const subSteps = 10; 
-        const dt = (0.05 * state.simSpeed * frameScale) / subSteps;
-
-        let allFinished = true;
-
-        for (let shell of shells) {
-            if (shell.finished) continue;
-            allFinished = false;
-
-            for (let i = 0; i < subSteps; i++) {
-                const r2 = shell.x * shell.x + shell.y * shell.y;
-                const r = Math.sqrt(r2);
-
-                if (r <= RE) {
-                    shell.crashed = true;
-                    shell.finished = true;
-                    break;
+        physicsClock.advance(0.05 * state.simSpeed * frameScale, (dt) => {
+            for (const shell of shells) {
+                if (shell.finished) continue;
+                if (Math.hypot(shell.x, shell.y) <= RE) {
+                    shell.crashed = shell.finished = true;
+                    continue;
                 }
-
-                const ax = - MU * shell.x / (r2 * r);
-                const ay = - MU * shell.y / (r2 * r);
-
-                shell.vx += ax * dt;
-                shell.vy += ay * dt;
-                shell.x += shell.vx * dt;
-                shell.y += shell.vy * dt;
-            }
-
-            if (!shell.crashed) {
-                // 每隔一点距离或者每次都记录点用于画线
-                shell.points.push({x: shell.x, y: shell.y});
-
-                // 计算角位移，判断是否绕场
-                let currentAngle = Math.atan2(shell.y, shell.x);
+                PhysicsLab.stepGravity(shell, MU, dt);
+                const currentAngle = Math.atan2(shell.y, shell.x);
                 let dAngle = currentAngle - shell.lastAngle;
-                // 处理 -PI 到 PI 的边界突变
                 if (dAngle > Math.PI) dAngle -= 2 * Math.PI;
                 if (dAngle < -Math.PI) dAngle += 2 * Math.PI;
-                
                 shell.angleSum += dAngle;
                 shell.lastAngle = currentAngle;
-
-                // 如果总绕角超过一圈 2PI
-                if (Math.abs(shell.angleSum) >= Math.PI * 2) {
+                if (Math.abs(shell.angleSum) >= 2 * Math.PI) {
                     shell.survivedRounds++;
-                    shell.angleSum = 0; // 重新计圈
-                    // 如果完成了两圈，证明它稳定可以存活，强制冻结避免无限占据性能
-                    if (shell.survivedRounds > 1) {
-                        shell.finished = true;
-                    }
+                    shell.angleSum -= Math.sign(shell.angleSum) * 2 * Math.PI;
+                    if (shell.survivedRounds >= 2) shell.finished = true;
                 }
-                
-                // 强制长度上限
-                if (shell.points.length > 5000) {
-                    shell.finished = true;
-                }
+                const last = shell.points.at(-1);
+                if (Math.hypot(shell.x - last.x, shell.y - last.y) >= 0.6) shell.points.push({ x: shell.x, y: shell.y });
+                if (shell.points.length >= 5000) shell.finished = true;
             }
-        }
+        });
+        state.running = shells.some((shell) => !shell.finished);
 
         updateStatus();
         drawFrame();
 
-        if (state.running) {
-            animationId = requestAnimationFrame(animate);
-        }
+        animationId = state.running ? requestAnimationFrame(animate) : null;
     }
 
     // 初始化运行

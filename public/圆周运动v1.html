@@ -160,6 +160,8 @@
     </style>
     <link rel="stylesheet" href="/lab-common.css">
     <script src="/lab-runtime.js"></script>
+    <meta name="description" content="动态演示不同初速下，小球在竖直轨道的完整圆周、脱轨以及摆动现象。">
+    <meta name="lab-model" content="模型：理想质点、均匀重力与光滑圆轨道；长度用 px、时间以 60 Hz 帧单位表示。法向约束失效后转为抛体运动，数值积分采用固定物理步长。">
 </head>
 <body>
 <a href="/" class="btn-home"> 🏠 返回展厅 </a>
@@ -216,6 +218,7 @@
 <script>
     const canvas = document.getElementById('simCanvas');
     const ctx = canvas.getContext('2d');
+    let viewWidth = 0, viewHeight = 0;
     
     // 基础物理常量与环境
     const g = 0.15;       // 重力加速度 (px/frame^2) 定一个小一点的值以便于观察
@@ -243,6 +246,7 @@
 
     let animationId = null;
     let lastFrameTime = 0;
+    const physicsClock = PhysicsLab.createFixedStepper();
     let statusFrameBudget = 0;
 
     // UI 绑定
@@ -262,16 +266,17 @@
 
     function resize() {
         const container = document.getElementById('canvas-container');
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
+        ({ width: viewWidth, height: viewHeight } = PhysicsLab.resizeCanvas(canvas, {
+            width: container.clientWidth, height: container.clientHeight
+        }));
         
-        state.cx = canvas.width / 2 + 50; 
-        state.groundY = canvas.height - 80;
+        state.cx = viewWidth / 2 + 50;
+        state.groundY = viewHeight - 80;
         state.cy = state.groundY - R - 60; // 圆心高度，距离地面60px的柱子支撑
         
         drawFrame();
     }
-    window.addEventListener('resize', resize);
+    PhysicsLab.observeResize(canvas.parentElement, resize);
 
     function setMode(kVal) {
         document.querySelectorAll('.control-group button').forEach(b => b.classList.remove('active'));
@@ -295,6 +300,8 @@
     });
 
     function resetSim() {
+        physicsClock.reset();
+        lastFrameTime = 0;
         state.mode = 'track';
         state.angle = 0; // 最底部
         state.v = state.k * Math.sqrt(g * R); // 往右抛（逆时针）
@@ -312,6 +319,7 @@
         state.running = !state.running;
         if (state.running) {
             lastFrameTime = 0;
+            physicsClock.reset();
             animationId = requestAnimationFrame(animate);
         } else if (animationId) {
             cancelAnimationFrame(animationId);
@@ -457,7 +465,7 @@
     }
 
     function drawFrame() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, viewWidth, viewHeight);
 
         // 绘制支撑柱和小底座
         ctx.beginPath();
@@ -469,10 +477,10 @@
 
         // 绘制地面
         ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
-        ctx.fillRect(0, state.groundY, canvas.width, canvas.height - state.groundY);
+        ctx.fillRect(0, state.groundY, viewWidth, viewHeight - state.groundY);
         ctx.beginPath(); 
         ctx.moveTo(0, state.groundY); 
-        ctx.lineTo(canvas.width, state.groundY);
+        ctx.lineTo(viewWidth, state.groundY);
         ctx.strokeStyle = '#475569';
         ctx.lineWidth = 4; 
         ctx.stroke();
@@ -583,9 +591,11 @@
 
         const frameScale = PhysicsLab.frameScale(timestamp, lastFrameTime);
         lastFrameTime = timestamp;
-        physicsStep(frameScale);
-        state.t += frameScale;
-        statusFrameBudget += frameScale;
+        physicsClock.advance(frameScale / 60, (dt) => {
+            physicsStep(dt * 60);
+            state.t += dt * 60;
+            statusFrameBudget += dt * 60;
+        });
         if (statusFrameBudget >= 5) {
             updateStatusText();
             statusFrameBudget = 0;

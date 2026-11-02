@@ -198,7 +198,7 @@
         slit: ['单缝衍射', '开口处成为新的波源', '入射波到达狭缝后，开口内各点发出次级子波；它们的包络向阴影区弯曲，形成衍射波。']
     };
     const state = { scene: 'plane', phase: .42, wavelength: 84, speed: 1, density: 15, playing: true, last: performance.now() };
-    let w = 0, h = 0, dpr = 1;
+    let w = 0, h = 0, dpr = 1, animation = null;
 
     function resize() {
         const rect = stage.getBoundingClientRect();
@@ -263,8 +263,7 @@
         const active=p<.08?0:p<.46?1:p<.58?2:3, labels=document.querySelectorAll('.phase-labels span'); labels.forEach((el,i)=>el.classList.toggle('active',i===active)); ui.phaseName.textContent=['选取当前波前','一级子波扩张','一级包络形成','二级子波继续传播'][active];
     }
     function draw(){ backdrop(); if(state.scene==='plane')drawPlane(); else if(state.scene==='point')drawPoint(); else drawSlit(); updateUi(); }
-    function animate(now){ const dt=Math.min((now-state.last)/1000,.05);state.last=now;if(state.playing){state.phase=(state.phase+dt*.22*state.speed)%1;draw()}requestAnimationFrame(animate); }
-    function setPlaying(on){state.playing=on;ui.play.innerHTML=on?'Ⅱ&nbsp; 暂停':'▶&nbsp; 继续';ui.play.setAttribute('aria-label',on?'暂停动画':'继续动画');}
+    function setPlaying(on){state.playing=on;ui.play.innerHTML=on?'Ⅱ&nbsp; 暂停':'▶&nbsp; 继续';ui.play.setAttribute('aria-label',on?'暂停动画':'继续动画');animation?.start();}
     document.querySelectorAll('.scene-btn').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.scene-btn').forEach(x=>x.classList.remove('active'));btn.classList.add('active');state.scene=btn.dataset.scene;const s=scenes[state.scene];ui.sceneTitle.textContent=s[0];ui.sceneSubtitle.textContent=s[1];ui.explanation.textContent=s[2];state.phase=.08;draw()}));
     ui.play.addEventListener('click',()=>setPlaying(!state.playing));
     document.getElementById('stepBtn').addEventListener('click',()=>{setPlaying(false);state.phase=(state.phase+.08)%1;draw()});
@@ -275,7 +274,7 @@
     ui.density.addEventListener('input',e=>{state.density=+e.target.value;ui.densityValue.textContent=state.density;draw()});
     [ui.arrows,ui.history].forEach(el=>el.addEventListener('change',draw));
     canvas.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();setPlaying(!state.playing)}if(e.key==='ArrowRight'){setPlaying(false);state.phase=(state.phase+.03)%1;draw()}});
-    window.addEventListener('resize',resize); new ResizeObserver(resize).observe(stage); resize(); requestAnimationFrame(animate);
+    window.addEventListener('resize',resize); new ResizeObserver(resize).observe(stage); animation=PhysicsLab.createAnimation({update:dt=>{state.phase=(state.phase+dt*.22*state.speed)%1},render:draw,isActive:()=>state.playing});resize();setPlaying(!matchMedia('(prefers-reduced-motion: reduce)').matches);
 })();
 </script>
 </body>

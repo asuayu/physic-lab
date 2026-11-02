@@ -99,7 +99,7 @@
 
         .status {
             position: absolute;
-            top: 20px;
+            top: 68px;
             right: 20px;
             background: rgba(0, 0, 0, 0.85);
             padding: 15px;
@@ -149,6 +149,8 @@
     </style>
     <link rel="stylesheet" href="/lab-common.css">
     <script src="/lab-runtime.js"></script>
+    <meta name="description" content="正交电磁场与重力场下，带电粒子轨迹的“配速法”与等效轮子模型动态演示。">
+    <meta name="lab-model" content="模型：匀强磁场与均匀重力中的理想带电质点；长度用 px、时间用 s。忽略阻力，轨迹由匀速漂移与匀速圆周运动的解析叠加得到。">
 </head>
 <body>
 <a href="/" class="btn-home"> 🏠 返回展厅 </a>
@@ -214,6 +216,9 @@
 <script>
     const canvas = document.getElementById('simCanvas');
     const ctx = canvas.getContext('2d');
+    let viewWidth = 0, viewHeight = 0;
+    const theme = getComputedStyle(document.documentElement);
+    const canvasColors = new Map();
     
     // 物理基础参数
     const PHYSICS = {
@@ -258,10 +263,12 @@
     };
 
     function resize() {
-        canvas.width = canvas.parentElement.clientWidth;
-        canvas.height = canvas.parentElement.clientHeight;
+        ({ width: viewWidth, height: viewHeight } = PhysicsLab.resizeCanvas(canvas, {
+            width: canvas.parentElement.clientWidth, height: canvas.parentElement.clientHeight
+        }));
+        draw();
     }
-    window.addEventListener('resize', resize);
+    PhysicsLab.observeResize(canvas.parentElement, resize);
     resize();
 
     function initSim() {
@@ -297,7 +304,10 @@
             state.rot_radius = 0; // 纯平动
         }
 
+        updatePhysics(0);
         updateStatus();
+        ui.btnPause.textContent = "⏸ 暂停";
+        animation.start();
     }
 
     function updateStatus() {
@@ -327,16 +337,11 @@
         `;
     }
 
-    let lastTime = 0;
-    function animate(timestamp) {
-        if (!lastTime) lastTime = timestamp;
-        const dt = (Math.min(timestamp - lastTime, 50)) / 1000; // 限制最大dt防跳帧
-        lastTime = timestamp;
-
-        if (state.running) updatePhysics(dt);
-        draw();
-        requestAnimationFrame(animate);
-    }
+    const animation = PhysicsLab.createAnimation({
+        update: updatePhysics,
+        render: draw,
+        isActive: () => state.running,
+    });
 
     function updatePhysics(dt) {
         state.t += dt;
@@ -361,21 +366,21 @@
         if (state.points.length > 1000) state.points.shift(); 
 
         // 摄像机跟随
-        state.cameraX = current_cx - canvas.width / 3;
+        state.cameraX = current_cx - viewWidth / 3;
         
         state.curr = { px, py, cx: current_cx, cy: current_cy, rx: current_rx, ry: current_ry };
     }
 
     function draw() {
-        ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg-color');
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = theme.getPropertyValue('--bg-color');
+        ctx.fillRect(0, 0, viewWidth, viewHeight);
 
-        const centerY = canvas.height / 2; 
+        const centerY = viewHeight / 2;
         
         ctx.save();
         ctx.translate(-state.cameraX, centerY);
 
-        drawGrid(ctx, state.cameraX, canvas.width, canvas.height, centerY);
+        drawGrid(ctx, state.cameraX, viewWidth, viewHeight, centerY);
 
         if (!state.curr) { ctx.restore(); return; }
 
@@ -446,12 +451,12 @@
     function drawArrow(ctx, x, y, vx, vy, colorStr, width) {
         if(Math.abs(vx) < 0.5 && Math.abs(vy) < 0.5) return; 
 
-        // 解析颜色变量
-        const tempDiv = document.createElement('div');
-        tempDiv.style.color = colorStr;
-        document.body.appendChild(tempDiv);
-        const color = getComputedStyle(tempDiv).color;
-        document.body.removeChild(tempDiv);
+        // Resolve each theme color once, without creating DOM nodes on every frame.
+        if (!canvasColors.has(colorStr)) {
+            canvasColors.set(colorStr, colorStr.startsWith('var(')
+                ? theme.getPropertyValue(colorStr.slice(4, -1)).trim() : colorStr);
+        }
+        const color = canvasColors.get(colorStr);
 
         const scale = 0.5; 
         const endX = x + vx * scale;
@@ -520,10 +525,14 @@
     ui.v0_ang.addEventListener('input', () => { ui.scenario.value = 'custom'; updateFromSliders(); });
     
     ui.btnRun.addEventListener('click', initSim);
-    ui.btnPause.addEventListener('click', () => { state.running = !state.running; });
+    ui.btnPause.addEventListener('click', () => {
+        state.running = !state.running;
+        ui.btnPause.textContent = state.running ? '⏸ 暂停' : '▶ 继续';
+        if (state.running) animation.start(); else animation.pause();
+    });
+    ui.showWheel.addEventListener('change', () => animation.invalidate());
 
     // 启动动画
-    requestAnimationFrame(animate);
     initSim();
 
 </script>

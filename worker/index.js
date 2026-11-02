@@ -7,10 +7,13 @@ const JSON_HEADERS = {
 const PAGE_MAX = 180;
 const NICKNAME_MAX = 24;
 const CONTENT_MAX = 800;
+const BODY_MAX_BYTES = 12_000;
 const DEFAULT_LIMIT = 15;
 const MAX_LIMIT = 30;
+const INITIAL_REPLY_LIMIT = 5;
 const MINUTE_LIMIT = 4;
 const DAY_LIMIT = 30;
+const SCHEMA_VERSION = 2;
 
 class ApiError extends Error {
     constructor(status, message, code = "request_error") {
@@ -30,7 +33,7 @@ function normalizePage(value) {
     if (typeof value !== "string") throw new ApiError(400, "缺少页面标识。", "invalid_page");
     let page = value.normalize("NFC");
     page = page.replace(/\/{2,}/g, "/").split(/[?#]/, 1)[0];
-    if (!page.startsWith("/") || page.includes("..") || page.length > PAGE_MAX) {
+    if (!page.startsWith("/") || page.includes("..") || page.length > PAGE_MAX || /[\s\p{C}\\]/u.test(page)) {
         throw new ApiError(400, "页面标识格式错误。", "invalid_page");
     }
     if (page.length > 1) page = page.replace(/\/+$/, "");
@@ -60,6 +63,13 @@ function positiveInteger(value, fallback = null) {
     return Number.isSafeInteger(number) && number > 0 ? number : fallback;
 }
 
+function optionalCursor(value) {
+    if (value == null) return null;
+    const cursor = positiveInteger(value);
+    if (!cursor) throw new ApiError(400, "分页游标无效。", "invalid_cursor");
+    return cursor;
+}
+
 async function sha256(value) {
     const bytes = new TextEncoder().encode(value);
     const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -72,47 +82,82 @@ function sameOrigin(request) {
 }
 
 async function clientHash(request, env) {
+    // Cloudflare supplies the IP at the edge; User-Agent must not create a new quota.
     const ip = request.headers.get("cf-connecting-ip") || "local";
-    const userAgent = (request.headers.get("user-agent") || "unknown").slice(0, 180);
     const salt = env.COMMENTS_HASH_SALT || env.COMMENTS_ADMIN_TOKEN || "physics-lab-comments";
-    return sha256(`${salt}\n${ip}\n${userAgent}`);
+    return sha256(`${salt}\n${ip}`);
 }
 
-async function validateTurnstile(request, env, token) {
-    if (!env.TURNSTILE_SECRET_KEY) return;
+function turnstileConfig(env) {
+    const siteKey = env.TURNSTILE_SITE_KEY?.trim() || "";
+    const secretKey = env.TURNSTILE_SECRET_KEY?.trim() || "";
+    if (Boolean(siteKey) !== Boolean(secretKey)) {
+        throw new ApiError(503, "留言人机验证配置不完整。", "turnstile_misconfigured");
+    }
+    return { siteKey, secretKey, required: Boolean(secretKey) };
+}
+
+async function validateTurnstile(request, config, token, verificationId) {
+    if (!config.required) return;
     if (typeof token !== "string" || token.length < 10 || token.length > 2048) {
         throw new ApiError(400, "请先完成人机验证。", "turnstile_required");
     }
 
     const form = new FormData();
-    form.set("secret", env.TURNSTILE_SECRET_KEY);
+    form.set("secret", config.secretKey);
     form.set("response", token);
     const remoteIp = request.headers.get("cf-connecting-ip");
     if (remoteIp) form.set("remoteip", remoteIp);
-    form.set("idempotency_key", crypto.randomUUID());
+    form.set("idempotency_key", verificationId || crypto.randomUUID());
 
     let result;
     try {
         const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
             method: "POST",
             body: form,
+            signal: AbortSignal.timeout(10_000),
         });
+        if (!response.ok) throw new Error("Turnstile request failed");
         result = await response.json();
     } catch {
         throw new ApiError(503, "人机验证服务暂时不可用，请稍后再试。", "turnstile_unavailable");
     }
 
-    if (!result.success || (result.action && result.action !== "physics_comment")) {
+    if (!result?.success || (result.action && result.action !== "physics_comment")) {
         throw new ApiError(400, "人机验证未通过，请重试。", "turnstile_failed");
     }
 }
 
 async function parseBody(request) {
     const contentLength = Number(request.headers.get("content-length") || 0);
-    if (contentLength > 12_000) throw new ApiError(413, "提交内容过大。", "payload_too_large");
+    if (contentLength > BODY_MAX_BYTES) throw new ApiError(413, "提交内容过大。", "payload_too_large");
+    const reader = request.body?.getReader();
+    if (!reader) throw new ApiError(400, "请求格式错误。", "invalid_json");
+    const chunks = [];
+    let length = 0;
+    try {
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            length += value.byteLength;
+            if (length > BODY_MAX_BYTES) {
+                await reader.cancel().catch(() => {});
+                throw new ApiError(413, "提交内容过大。", "payload_too_large");
+            }
+            chunks.push(value);
+        }
+    } finally {
+        reader.releaseLock();
+    }
+    const bytes = new Uint8Array(length);
+    let offset = 0;
+    for (const chunk of chunks) {
+        bytes.set(chunk, offset);
+        offset += chunk.byteLength;
+    }
     let body;
     try {
-        body = await request.json();
+        body = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
     } catch {
         throw new ApiError(400, "请求格式错误。", "invalid_json");
     }
@@ -134,10 +179,10 @@ function publicComment(row) {
     };
 }
 
-async function listComments(request, env) {
+async function listComments(request, env, config) {
     const url = new URL(request.url);
     const page = normalizePage(url.searchParams.get("page"));
-    const before = positiveInteger(url.searchParams.get("before"));
+    const before = optionalCursor(url.searchParams.get("before"));
     const limit = Math.min(positiveInteger(url.searchParams.get("limit"), DEFAULT_LIMIT), MAX_LIMIT);
 
     const conditions = [
@@ -149,15 +194,16 @@ async function listComments(request, env) {
     ];
     const values = [page];
     if (before) {
-        conditions.push("id < ?");
+        conditions.push("c.id < ?");
         values.push(before);
     }
 
     const topQuery = `
-        SELECT c.id, c.parent_id, c.nickname, c.content, c.status, c.created_at
+        SELECT c.id, c.parent_id, c.nickname, c.content, c.status, c.created_at,
+            (SELECT COUNT(*) FROM comments child WHERE child.parent_id = c.id AND child.status = 'visible') AS reply_count
         FROM comments c
         WHERE ${conditions.join(" AND ")}
-        ORDER BY id DESC
+        ORDER BY c.id DESC
         LIMIT ?
     `;
     const [topResult, countRow] = await Promise.all([
@@ -174,14 +220,15 @@ async function listComments(request, env) {
     let replies = [];
     if (roots.length) {
         const placeholders = roots.map(() => "?").join(",");
+        // Limit each root separately; an active thread cannot consume another's replies.
         const replyResult = await env.COMMENTS_DB.prepare(`
-            SELECT id, parent_id, nickname, content, status, created_at
-            FROM comments
-            WHERE parent_id IN (${placeholders}) AND status = 'visible'
-            ORDER BY id ASC
-            LIMIT 300
+            SELECT * FROM (
+                SELECT id, parent_id, nickname, content, status, created_at,
+                    ROW_NUMBER() OVER (PARTITION BY parent_id ORDER BY id ASC) AS reply_rank
+                FROM comments WHERE parent_id IN (${placeholders}) AND status = 'visible'
+            ) WHERE reply_rank <= ? ORDER BY parent_id, id ASC
         `)
-            .bind(...roots.map((row) => row.id))
+            .bind(...roots.map((row) => row.id), INITIAL_REPLY_LIMIT)
             .all();
         replies = replyResult.results;
     }
@@ -193,20 +240,76 @@ async function listComments(request, env) {
     }
 
     return json({
-        comments: roots.map((row) => ({
-            ...publicComment(row),
-            replies: repliesByParent.get(row.id) || [],
-        })),
+        comments: roots.map((row) => {
+            const replies = repliesByParent.get(row.id) || [];
+            const replyCount = Number(row.reply_count);
+            return {
+                ...publicComment(row), replies, replyCount,
+                hasMoreReplies: replyCount > replies.length,
+                nextReplyCursor: replyCount > replies.length ? replies.at(-1)?.id ?? null : null,
+            };
+        }),
         total: Number(countRow?.total || 0),
         hasMore,
         nextCursor: hasMore ? roots.at(-1)?.id ?? null : null,
-        turnstileSiteKey: env.TURNSTILE_SITE_KEY || null,
-        turnstileRequired: Boolean(env.TURNSTILE_SECRET_KEY),
+        turnstileSiteKey: config.siteKey || null,
+        turnstileRequired: config.required,
         maxContentLength: CONTENT_MAX,
     });
 }
 
-async function createComment(request, env) {
+async function listReplies(request, env, id) {
+    const url = new URL(request.url);
+    const page = normalizePage(url.searchParams.get("page"));
+    const after = optionalCursor(url.searchParams.get("after"));
+    const limit = Math.min(positiveInteger(url.searchParams.get("limit"), DEFAULT_LIMIT), MAX_LIMIT);
+    const parent = await env.COMMENTS_DB.prepare(
+        "SELECT id FROM comments WHERE id = ? AND page_key = ? AND parent_id IS NULL AND status IN ('visible', 'deleted')",
+    ).bind(id, page).first();
+    if (!parent) throw new ApiError(404, "回复的留言不存在。", "parent_not_found");
+    const result = await env.COMMENTS_DB.prepare(`
+        SELECT id, parent_id, nickname, content, status, created_at FROM comments
+        WHERE parent_id = ? AND page_key = ? AND status = 'visible' AND id > ?
+        ORDER BY id ASC LIMIT ?
+    `).bind(id, page, after || 0, limit + 1).all();
+    const hasMore = result.results.length > limit;
+    const replies = result.results.slice(0, limit).map(publicComment);
+    return json({ replies, hasMore, nextCursor: hasMore ? replies.at(-1)?.id ?? null : null });
+}
+
+function requestId(value) {
+    if (value == null) return null;
+    if (typeof value !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(value)) {
+        throw new ApiError(400, "提交标识无效。", "invalid_request_id");
+    }
+    return value;
+}
+
+function createdResponse(row, replayed = false) {
+    return json({ ok: true, replayed, comment: { ...publicComment(row), replies: [] } }, replayed ? 200 : 201);
+}
+
+async function findReplay(env, hash, id, fingerprint) {
+    if (!id) return null;
+    const row = await env.COMMENTS_DB.prepare(
+        "SELECT id, parent_id, nickname, content, status, created_at, request_fingerprint FROM comments WHERE client_hash = ? AND request_id = ?",
+    ).bind(hash, id).first();
+    if (row && row.request_fingerprint !== fingerprint) {
+        throw new ApiError(409, "该提交标识已用于其他内容，请重新提交。", "idempotency_conflict");
+    }
+    return row;
+}
+
+async function turnstileVerificationId(hash, id, token) {
+    if (!id) return null;
+    // Concurrent retries also share Siteverify's idempotency key. Derive a UUID
+    // from the server-scoped request ID rather than reusing a client's UUID globally.
+    // A renewed challenge token needs a fresh verification after an expired token.
+    const hex = await sha256(JSON.stringify(["turnstile", hash, id, token]));
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+
+async function createComment(request, env, config) {
     if (!sameOrigin(request)) throw new ApiError(403, "拒绝跨站提交。", "origin_mismatch");
     const body = await parseBody(request);
 
@@ -221,33 +324,37 @@ async function createComment(request, env) {
         throw new ApiError(400, "回复目标无效。", "invalid_parent");
     }
 
-    await validateTurnstile(request, env, body.turnstileToken);
+    const id = requestId(body.requestId);
     const hash = await clientHash(request, env);
+    const fingerprint = id ? await sha256(JSON.stringify([page, parentId, nickname, content])) : null;
+    // A network retry must not consume a second, single-use Turnstile token.
+    const replay = await findReplay(env, hash, id, fingerprint);
+    if (replay) return createdResponse(replay, true);
+    await validateTurnstile(request, config, body.turnstileToken,
+        config.required ? await turnstileVerificationId(hash, id, body.turnstileToken) : null);
     const now = Math.floor(Date.now() / 1000);
 
-    const [minuteRow, dayRow, duplicateRow] = await Promise.all([
-        env.COMMENTS_DB.prepare(
-            "SELECT COUNT(*) AS total FROM comments WHERE client_hash = ? AND created_at >= ?",
-        )
-            .bind(hash, now - 60)
-            .first(),
-        env.COMMENTS_DB.prepare(
-            "SELECT COUNT(*) AS total FROM comments WHERE client_hash = ? AND created_at >= ?",
-        )
-            .bind(hash, now - 86400)
-            .first(),
-        env.COMMENTS_DB.prepare(
-            "SELECT id FROM comments WHERE client_hash = ? AND page_key = ? AND content = ? AND created_at >= ? LIMIT 1",
-        )
-            .bind(hash, page, content, now - 600)
-            .first(),
-    ]);
-
-    if (Number(minuteRow?.total || 0) >= MINUTE_LIMIT || Number(dayRow?.total || 0) >= DAY_LIMIT) {
-        throw new ApiError(429, "留言太频繁，请稍后再试。", "rate_limited");
-    }
-    if (duplicateRow) throw new ApiError(409, "相同留言已提交，请勿重复发送。", "duplicate_comment");
-
+    // SQLite serializes writes. Keep quota, duplicate and parent checks in this
+    // one statement so concurrent requests cannot pass stale preflight SELECTs.
+    const row = await env.COMMENTS_DB.prepare(`
+        INSERT INTO comments (page_key, parent_id, nickname, content, status, client_hash, created_at, request_id, request_fingerprint)
+        SELECT ?, ?, ?, ?, 'visible', ?, ?, ?, ?
+        WHERE (SELECT COUNT(*) FROM comments WHERE client_hash = ? AND created_at >= ?) < ?
+          AND (SELECT COUNT(*) FROM comments WHERE client_hash = ? AND created_at >= ?) < ?
+          AND NOT EXISTS (SELECT 1 FROM comments WHERE client_hash = ? AND page_key = ? AND content = ? AND created_at >= ?)
+          AND (? IS NULL OR EXISTS (
+              SELECT 1 FROM comments WHERE id = ? AND page_key = ? AND parent_id IS NULL AND status IN ('visible', 'deleted')
+          ))
+        ON CONFLICT DO NOTHING
+        RETURNING id, parent_id, nickname, content, status, created_at
+    `).bind(
+        page, parentId, nickname, content, hash, now, id, fingerprint,
+        hash, now - 60, MINUTE_LIMIT, hash, now - 86400, DAY_LIMIT,
+        hash, page, content, now - 600, parentId, parentId, page,
+    ).first();
+    if (row) return createdResponse(row);
+    const concurrentReplay = await findReplay(env, hash, id, fingerprint);
+    if (concurrentReplay) return createdResponse(concurrentReplay, true);
     if (parentId) {
         const parent = await env.COMMENTS_DB.prepare(
             "SELECT id FROM comments WHERE id = ? AND page_key = ? AND parent_id IS NULL AND status IN ('visible', 'deleted')",
@@ -257,15 +364,14 @@ async function createComment(request, env) {
         if (!parent) throw new ApiError(404, "回复的留言不存在。", "parent_not_found");
     }
 
-    const row = await env.COMMENTS_DB.prepare(`
-        INSERT INTO comments (page_key, parent_id, nickname, content, status, client_hash, created_at)
-        VALUES (?, ?, ?, ?, 'visible', ?, ?)
-        RETURNING id, parent_id, nickname, content, status, created_at
-    `)
-        .bind(page, parentId, nickname, content, hash, now)
-        .first();
-
-    return json({ ok: true, comment: { ...publicComment(row), replies: [] } }, 201);
+    const counts = await env.COMMENTS_DB.prepare(`
+        SELECT COUNT(*) AS day_total, COALESCE(SUM(created_at >= ?), 0) AS minute_total
+        FROM comments WHERE client_hash = ? AND created_at >= ?
+    `).bind(now - 60, hash, now - 86400).first();
+    if (Number(counts?.minute_total || 0) >= MINUTE_LIMIT || Number(counts?.day_total || 0) >= DAY_LIMIT) {
+        throw new ApiError(429, "留言太频繁，请稍后再试。", "rate_limited");
+    }
+    throw new ApiError(409, "相同留言已提交，请勿重复发送。", "duplicate_comment");
 }
 
 function secureEqual(actual, expected) {
@@ -297,17 +403,31 @@ async function deleteComment(request, env, id) {
     return json({ ok: true });
 }
 
+async function health(env, config) {
+    try {
+        const [schema, index] = await Promise.all([
+            env.COMMENTS_DB.prepare("SELECT version FROM comments_schema WHERE singleton = 1").first(),
+            env.COMMENTS_DB.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_comments_client_request'").first(),
+            env.COMMENTS_DB.prepare("SELECT id, page_key, parent_id, nickname, content, status, client_hash, created_at, request_id, request_fingerprint FROM comments LIMIT 0").all(),
+        ]);
+        if (Number(schema?.version) !== SCHEMA_VERSION || !index) throw new Error("Schema mismatch");
+    } catch {
+        throw new ApiError(503, "留言数据库迁移尚未完成。", "schema_unavailable");
+    }
+    return json({ ok: true, schemaVersion: SCHEMA_VERSION, turnstile: config.required });
+}
+
 async function apiRouter(request, env) {
     if (!env.COMMENTS_DB) throw new ApiError(503, "留言数据库尚未配置。", "database_unavailable");
+    const config = turnstileConfig(env);
     const url = new URL(request.url);
-    if (url.pathname === "/api/comments/health" && request.method === "GET") {
-        await env.COMMENTS_DB.prepare("SELECT 1").first();
-        return json({ ok: true, turnstile: Boolean(env.TURNSTILE_SECRET_KEY) });
-    }
-    if (url.pathname === "/api/comments" && request.method === "GET") return listComments(request, env);
-    if (url.pathname === "/api/comments" && request.method === "POST") return createComment(request, env);
+    if (url.pathname === "/api/comments/health" && request.method === "GET") return health(env, config);
+    if (url.pathname === "/api/comments" && request.method === "GET") return listComments(request, env, config);
+    if (url.pathname === "/api/comments" && request.method === "POST") return createComment(request, env, config);
+    const replyMatch = url.pathname.match(/^\/api\/comments\/(\d+)\/replies$/);
+    if (replyMatch && request.method === "GET" && positiveInteger(replyMatch[1])) return listReplies(request, env, Number(replyMatch[1]));
     const match = url.pathname.match(/^\/api\/comments\/(\d+)$/);
-    if (match && request.method === "DELETE") return deleteComment(request, env, Number(match[1]));
+    if (match && request.method === "DELETE" && positiveInteger(match[1])) return deleteComment(request, env, Number(match[1]));
     throw new ApiError(404, "接口不存在。", "not_found");
 }
 

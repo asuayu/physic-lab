@@ -171,6 +171,8 @@
     </style>
     <link rel="stylesheet" href="/lab-common.css">
     <script src="/lab-runtime.js"></script>
+    <meta name="description" content="直观拆解轮子滚动时的平动与转动速度矢量叠加，探究长幅与短幅摆线成因。">
+    <meta name="lab-model" content="模型：理想刚性轮的匀速平动与匀速转动叠加；长度用 px，时间以 60 Hz 帧单位表示。平动与转动速度可独立调整，不强制无滑动条件。">
 </head>
 <body>
 <a href="/" class="btn-home"> 🏠 返回展厅 </a>
@@ -216,6 +218,7 @@
 <script>
     const canvas = document.getElementById('simCanvas');
     const ctx = canvas.getContext('2d');
+    let viewWidth = 0, viewHeight = 0;
     
     // ======== 解决 Canvas 不识别 var() 的核心：声明 JS 颜色常量 ========
     const COLORS = {
@@ -247,12 +250,13 @@
 
     function resize() {
         const container = document.getElementById('canvas-container');
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
-        state.groundY = canvas.height - 120; 
+        ({ width: viewWidth, height: viewHeight } = PhysicsLab.resizeCanvas(canvas, {
+            width: container.clientWidth, height: container.clientHeight
+        }));
+        state.groundY = viewHeight - 120;
         resetSim();
     }
-    window.addEventListener('resize', resize);
+    PhysicsLab.observeResize(canvas.parentElement, resize);
 
     // UI 元素
     const ui = {
@@ -362,7 +366,7 @@
     }
 
     function drawFrame() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, viewWidth, viewHeight);
 
         const v_trans = state.ratio * v_rot_mag; 
         const startX = 120;
@@ -371,7 +375,7 @@
         let cy = state.groundY - R;         
         let theta = omega * state.t;         
         
-        if (cx - R > canvas.width) { 
+        if (cx - R > viewWidth) {
             resetSim(); 
             return false; 
         }
@@ -385,10 +389,10 @@
 
         // 1. 绘制地面 
         ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
-        ctx.fillRect(0, state.groundY, canvas.width, canvas.height - state.groundY);
+        ctx.fillRect(0, state.groundY, viewWidth, viewHeight - state.groundY);
         ctx.beginPath(); 
         ctx.moveTo(0, state.groundY); 
-        ctx.lineTo(canvas.width, state.groundY);
+        ctx.lineTo(viewWidth, state.groundY);
         ctx.strokeStyle = COLORS.ground; // <--- 修复处：使用常量
         ctx.lineWidth = 4; 
         ctx.stroke();

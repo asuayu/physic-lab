@@ -3,25 +3,38 @@
   "type": "module",
   "version": "0.0.1",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.23.4"
   },
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "check:worker": "node --check worker/index.js && node --check public/lab-comments.js && node --check public/lab-runtime.js",
+    "check:worker": "node --check worker/index.js && node --check public/lab-comments.js && node --check public/lab-runtime.js && node --check public/lab-tools.js && node --check public/lab-physics.js",
     "check": "node scripts/check-content.mjs",
-    "validate": "npm run check:worker && npm run check && npm run build",
+    "check:types": "astro check --minimumFailingSeverity error",
+    "test:unit": "node --test tests/physics.test.mjs tests/runtime.test.mjs",
+    "test:comments": "node scripts/test-comments-isolated.mjs",
+    "test:browser": "node scripts/check-browser.mjs",
+    "test": "npm run test:unit && npm run test:comments",
+    "validate": "npm run check:worker && npm run check && npm run check:types && npm test && npm run build",
+    "validate:full": "npm run validate && npm run test:browser",
     "comments:dev": "wrangler dev",
     "comments:migrate:local": "wrangler d1 migrations apply COMMENTS_DB --local",
     "comments:migrate:remote": "wrangler d1 migrations apply COMMENTS_DB --remote",
     "comments:test:api": "node scripts/test-comments-api.mjs",
+    "comments:probe": "node scripts/probe-comments.mjs",
     "preview": "astro preview",
     "astro": "astro"
   },
   "devDependencies": {
-    "wrangler": "^4.125.0"
+    "@astrojs/check": "^0.9.12",
+    "acorn": "^8.19.0",
+    "parse5": "^8.1.0",
+    "playwright": "^1.64.1",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.156.1"
   },
   "dependencies": {
-    "astro": "^7.1.6"
+    "astro": "^7.4.4",
+    "zod": "^4.6.7"
   }
 }

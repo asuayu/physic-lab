@@ -108,11 +108,12 @@
                 <div class="control">
                     <label><span>对比环境</span></label>
                     <div class="mode-group">
-                        <button class="active" id="hotMode" type="button">炎热路面</button>
-                        <button id="uniformMode" type="button">均匀空气</button>
+                        <button class="active" id="hotMode" data-lab-share type="button">炎热路面</button>
+                        <button id="uniformMode" data-lab-share type="button">均匀空气</button>
                     </div>
                 </div>
                 <div class="control">
+                    <label class="toggle"><input id="animateLight" type="checkbox" checked>播放光线传播</label>
                     <label class="toggle"><input id="showLayers" type="checkbox" checked>显示空气分层</label>
                     <label class="toggle"><input id="showExtension" type="checkbox" checked>显示反向延长线（虚像）</label>
                 </div>
@@ -141,6 +142,10 @@
     const wrap = document.getElementById('canvasWrap');
     const ctx = canvas.getContext('2d');
     const heat = document.getElementById('heat');
+    const animateLight = document.getElementById('animateLight');
+    let animation=null;
+    function invalidate(){animation?.start()}
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches)animateLight.checked=false;
     const eye = document.getElementById('eye');
     const heatValue = document.getElementById('heatValue');
     const eyeValue = document.getElementById('eyeValue');
@@ -157,6 +162,7 @@
         canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
         canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        invalidate();
     }
 
     function rayPoint(t, index) {
@@ -223,13 +229,14 @@
         label(mode==='hot'?'光线逐层折射，向上弯曲':'空气均匀，光近似沿直线传播',w*.48,24,mode==='hot'?'#fde68a':'#bae6fd','center');
     }
 
-    function updateText(){ const v=+heat.value; heatValue.textContent=v<20?'很弱':v<50?'中等':v<80?'强':'很强'; eyeValue.textContent=(+eye.value/100).toFixed(1)+' m'; }
-    function setMode(next){mode=next;hotMode.classList.toggle('active',next==='hot');uniformMode.classList.toggle('active',next==='uniform');heat.disabled=next==='uniform';}
+    function updateText(){ const v=+heat.value; heatValue.textContent=v<20?'很弱':v<50?'中等':v<80?'强':'很强'; eyeValue.textContent=(+eye.value/100).toFixed(1)+' m';invalidate(); }
+    function setMode(next){mode=next;hotMode.classList.toggle('active',next==='hot');uniformMode.classList.toggle('active',next==='uniform');heat.disabled=next==='uniform';invalidate();}
     [heat,eye,showLayers,showExtension].forEach(el=>el.addEventListener('input',updateText));
     hotMode.addEventListener('click',()=>setMode('hot')); uniformMode.addEventListener('click',()=>setMode('uniform'));
     new ResizeObserver(resize).observe(wrap); window.addEventListener('resize',resize);
-    function animate(now){ const dt=window.PhysicsLab?PhysicsLab.frameScale(now,last):1; last=now; time+=16.67*dt; draw(); requestAnimationFrame(animate); }
-    updateText(); resize(); requestAnimationFrame(animate);
+    animateLight.addEventListener('change',invalidate);
+    animation=PhysicsLab.createAnimation({update:dt=>{time+=dt*1000},render:draw,isActive:()=>animateLight.checked});
+    updateText();resize();invalidate();
 })();
 </script>
 </body>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07111f">
+    <meta name="description" content="半波损失、反射相位突变、薄膜干涉与牛顿环动态可视化">
+    <title>半波损失｜反射相位与薄膜干涉动态演示</title>
+    <link rel="stylesheet" href="/lab-common.css">
+    <style>
+        :root{color-scheme:dark;--bg:#06101d;--panel:#0d1b2c;--panel2:#0a1726;--line:#29415b;--text:#eef7ff;--muted:#9fb3c8;--cyan:#38bdf8;--violet:#c084fc;--amber:#fbbf24;--green:#4ade80;--red:#fb7185}
+        *{box-sizing:border-box}html{background:var(--bg);scroll-behavior:smooth}body.document-lab{margin:0;min-height:100vh;overflow-x:hidden;color:var(--text);font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:radial-gradient(circle at 50% -8%,#173b58 0,#06101d 48%)}
+        .page{width:min(1220px,calc(100% - 30px));margin:auto;padding:22px 0 58px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px}.eyebrow{color:#7dd3fc;font-size:.78rem;letter-spacing:.17em;font-weight:800}.topbar h1{margin:5px 0 0;font-size:clamp(1.6rem,4vw,2.45rem)}.btn-home{position:static;color:#cbd5e1;text-decoration:none;border:1px solid #36516d;border-radius:999px;padding:8px 14px;white-space:nowrap;background:#0b1828}.btn-home:hover{color:#fff;border-color:#7dd3fc}.card{min-width:0;border:1px solid var(--line);border-radius:18px;background:rgba(13,27,44,.95);box-shadow:0 18px 48px rgba(0,0,0,.24)}
+        .hero{padding:clamp(18px,3vw,28px);margin-bottom:20px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(290px,.7fr);gap:22px;align-items:center}.hero h2{margin:0 0 9px;font-size:clamp(1.2rem,2.5vw,1.55rem)}.hero p{margin:0;color:#b7c9da;line-height:1.8}.rule{display:grid;grid-template-columns:auto 1fr;gap:10px 13px;padding:16px;border:1px solid #32506e;border-radius:13px;background:#081625}.rule b{color:#f8fafc}.chip{display:grid;place-items:center;min-width:68px;height:30px;border-radius:8px;font-weight:800;font-family:Cambria,"Times New Roman",serif}.chip.pi{color:#2b153d;background:#d8b4fe}.chip.zero{color:#052e16;background:#86efac}.rule small{grid-column:1/-1;color:#7890a8;line-height:1.55}
+        .lab{overflow:hidden}.lab-head{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:17px 20px;border-bottom:1px solid var(--line)}.lab-head h2{margin:0;font-size:1.13rem}.live{font-size:.78rem;color:#86efac;border:1px solid rgba(74,222,128,.3);background:rgba(74,222,128,.08);border-radius:999px;padding:4px 9px}.workspace{display:grid;grid-template-columns:305px minmax(0,1fr);min-height:660px}.controls{padding:18px;background:#081625;border-right:1px solid var(--line)}.control{margin-bottom:17px}.control>label{display:flex;justify-content:space-between;gap:10px;color:#b9cada;font-size:.87rem;margin-bottom:8px}.value{color:#fdba74;font-variant-numeric:tabular-nums}input[type=range]{width:100%;accent-color:#38bdf8}.mode-group{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.mode,.preset{min-width:0;color:#bdd0e1;background:#12253b;border:1px solid #39536d;border-radius:9px;padding:9px 6px;cursor:pointer;font:inherit}.mode.active,.preset.active{color:#fff;border-color:#38bdf8;background:#075985}.preset-group{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.pane[hidden]{display:none}.toggle{display:flex!important;justify-content:flex-start!important;align-items:center;gap:8px!important;cursor:pointer}.toggle input{width:16px;height:16px;accent-color:#38bdf8}.readout{padding:12px;border:1px solid #2b435d;border-radius:11px;background:#06121f;color:#9fb3c7;font-size:.8rem;line-height:1.7}.readout strong{display:block;color:#f8fafc}.readout .hot{color:#fde68a}.readout .phase{color:#d8b4fe}.canvas-wrap{position:relative;min-width:0;min-height:660px;background:#030b14}.canvas-wrap canvas{display:block;width:100%;height:100%;min-height:660px}.canvas-note{position:absolute;left:14px;bottom:12px;margin:0;padding:7px 10px;border-radius:8px;background:rgba(2,8,15,.82);color:#8fa7bd;font-size:.76rem;pointer-events:none}
+        .concepts{display:grid;grid-template-columns:repeat(4,1fr);margin-top:20px;overflow:hidden}.concepts article{padding:19px}.concepts article+article{border-left:1px solid var(--line)}.concepts small{color:#7dd3fc}.concepts h3{margin:7px 0;font-size:1rem}.concepts p{margin:0;color:#9eb2c5;line-height:1.68;font-size:.87rem}.equation{color:#fde68a!important;font-family:Cambria,"Times New Roman",serif;font-size:1rem!important}.cases{margin-top:20px;padding:20px}.cases h2{margin:0 0 13px;font-size:1.12rem}.case-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}.case{padding:15px;border:1px solid #2c455f;border-radius:12px;background:#081625}.case b{display:block;color:#f8fafc;margin-bottom:7px}.case p{margin:0;color:#9eb2c6;line-height:1.68;font-size:.87rem}.case .answer{color:#86efac;margin-top:7px}.warning{margin:15px 0 0;padding:13px 15px;border-left:4px solid #fb923c;border-radius:8px;background:#131d2a;color:#b9c9d9;line-height:1.7}.sources{margin-top:20px;padding:18px 20px}.sources h2{font-size:1rem;margin:0 0 9px}.sources p{margin:0;color:#91a8bd;font-size:.82rem;line-height:1.8}.sources a{color:#7dd3fc}
+        @media(max-width:920px){.hero{grid-template-columns:1fr}.workspace{grid-template-columns:1fr}.controls{border-right:0;border-bottom:1px solid var(--line)}.control-bank{display:grid;grid-template-columns:repeat(2,1fr);gap:0 18px}.canvas-wrap,.canvas-wrap canvas{min-height:610px}.concepts{grid-template-columns:repeat(2,1fr)}.concepts article:nth-child(3){border-left:0;border-top:1px solid var(--line)}.concepts article:nth-child(4){border-top:1px solid var(--line)} }
+        @media(max-width:620px){.page{width:calc(100% - 18px);padding-top:13px}.topbar{align-items:flex-start;flex-direction:column}.hero{padding:15px}.control-bank,.case-grid,.concepts{grid-template-columns:1fr}.mode-group{grid-template-columns:repeat(3,1fr)}.controls,.control-bank,.control{min-width:0}.concepts article+article{border-left:0;border-top:1px solid var(--line)}.workspace,.canvas-wrap,.canvas-wrap canvas{min-height:570px}.lab-head{padding:14px}.live{display:none}}
+        @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+    </style>
+    <script src="/lab-runtime.js"></script>
+</head>
+<body class="document-lab">
+<main class="page">
+    <header class="topbar"><div><div class="eyebrow">光学 · 波动光学</div><h1>半波损失：反射时“少了半个波长”吗？</h1></div><a class="btn-home" href="/">← 返回展厅</a></header>
+
+    <section class="hero card">
+        <div><h2>它不是能量损失，而是反射电场的 π 相位突变</h2><p>在透明、非磁介质的近法线入射模型中，从低折射率介质射向高折射率介质时，反射电场反号，相位改变 π；把它写成“等效多走 λ/2”，只是为了方便计算干涉相位。</p></div>
+        <div class="rule"><span class="chip pi">n₂ &gt; n₁</span><b>反射相变 π（半波损失）</b><span class="chip zero">n₂ &lt; n₁</span><b>反射相变 0</b><small>若 n₂=n₁，则没有界面反射，“反射相位”也没有实际意义。</small></div>
+    </section>
+
+    <section class="lab card" aria-labelledby="lab-title">
+        <div class="lab-head"><h2 id="lab-title">相位实验台：界面 → 薄膜 → 牛顿环</h2><span class="live">● 动态电场</span></div>
+        <div class="workspace">
+            <aside class="controls" aria-label="演示控制">
+                <div class="control"><label><span>观察场景</span></label><div class="mode-group"><button class="mode active" data-scene="interface" type="button">界面</button><button class="mode" data-scene="film" type="button">薄膜</button><button class="mode" data-scene="rings" type="button">牛顿环</button></div></div>
+                <div class="control-bank">
+                    <div class="control"><label for="wavelength"><span>真空波长 λ</span><output class="value" id="wavelengthValue">550 nm</output></label><input id="wavelength" type="range" min="400" max="700" value="550"></div>
+                    <div class="pane" data-pane="interface">
+                        <div class="control"><label for="nFrom"><span>入射侧 n₁</span><output class="value" id="nFromValue">1.00</output></label><input id="nFrom" type="range" min="100" max="200" value="100"></div>
+                        <div class="control"><label for="nTo"><span>透射侧 n₂</span><output class="value" id="nToValue">1.50</output></label><input id="nTo" type="range" min="100" max="200" value="150"></div>
+                    </div>
+                    <div class="pane" data-pane="film" hidden>
+                        <div class="control"><label><span>经典案例</span></label><div class="preset-group"><button class="preset active" data-preset="soap" type="button">肥皂膜</button><button class="preset" data-preset="coating" type="button">增透膜</button></div></div>
+                        <div class="control"><label for="thickness"><span>膜厚 t</span><output class="value" id="thicknessValue">0 nm</output></label><input id="thickness" type="range" min="0" max="700" value="0"></div>
+                        <div class="control"><label for="nTop"><span>上层 n₀</span><output class="value" id="nTopValue">1.00</output></label><input id="nTop" type="range" min="100" max="180" value="100"></div>
+                        <div class="control"><label for="nFilm"><span>薄膜 n₁</span><output class="value" id="nFilmValue">1.33</output></label><input id="nFilm" type="range" min="100" max="200" value="133"></div>
+                        <div class="control"><label for="nSub"><span>基底 n₂</span><output class="value" id="nSubValue">1.00</output></label><input id="nSub" type="range" min="100" max="220" value="100"></div>
+                    </div>
+                    <div class="pane" data-pane="rings" hidden>
+                        <div class="control"><label for="radius"><span>透镜曲率半径 R</span><output class="value" id="radiusValue">1.00 m</output></label><input id="radius" type="range" min="50" max="200" value="100"></div>
+                        <div class="control"><label for="centerGap"><span>中心空气隙 t₀</span><output class="value" id="centerGapValue">0 nm</output></label><input id="centerGap" type="range" min="0" max="350" value="0"></div>
+                    </div>
+                    <div class="control"><label class="toggle"><input id="animateLight" type="checkbox" checked>播放波与光束传播</label><label class="toggle"><input id="showEquivalent" type="checkbox" checked>显示“等效 λ/2”相位账本</label></div>
+                </div>
+                <div class="readout" id="readout" aria-live="polite"></div>
+            </aside>
+            <div class="canvas-wrap" id="canvasWrap"><canvas id="scene" tabindex="0" role="img" aria-label="半波损失、薄膜干涉和牛顿环的动态相位演示"></canvas><p class="canvas-note" id="canvasNote">拖动 n₁、n₂，观察反射系数跨过零点时波形如何翻相</p></div>
+        </div>
+    </section>
+
+    <section class="concepts card" aria-label="核心原理">
+        <article><small>01 · 振幅</small><h3>先看菲涅耳反射系数</h3><p class="equation">r = (n₁−n₂)/(n₁+n₂)</p><p>r 的正负决定反射电场是否反号，r² 才是反射能量比例。</p></article>
+        <article><small>02 · 相位</small><h3>“λ/2”只是等效写法</h3><p class="equation">π rad ↔ 光程 λ₀/2</p><p>λ₀ 为真空波长；若换成折射率 n 介质内的几何距离则为 λ₀/(2n)。没有光真的额外走了这段距离。</p></article>
+        <article><small>03 · 薄膜</small><h3>两项必须一起记</h3><p class="equation">Δφ = 4πnt/λ + Δφᵣ</p><p>第一项来自膜内往返光程 2nt，第二项来自两次反射相变之差。</p></article>
+        <article><small>04 · 牛顿环</small><h3>接触中心为何是暗的</h3><p>中心 t=0，几何光程差为零；但两束反射光相差 π，所以反射光中心为暗斑。</p></article>
+    </section>
+
+    <section class="cases card">
+        <h2>三个经典案例的相位账本</h2>
+        <div class="case-grid">
+            <article class="case"><b>悬空肥皂膜：空气 → 膜 → 空气</b><p>上表面低到高反射翻相 π，下表面高到低不翻相；两束反射光额外相差 π。</p><p class="answer">反射增强：2nt=(m+1/2)λ</p></article>
+            <article class="case"><b>增透膜：空气 → 膜 → 玻璃</b><p>若折射率逐层增大，两次反射都翻相 π，相对反射相变抵消；四分之一波膜用几何光程制造 π。</p><p class="answer">最薄反射极小：t=λ/(4n)；完全消反射还需 n₁²=n₀n₂</p></article>
+            <article class="case"><b>牛顿环：玻璃 → 空气 → 玻璃</b><p>空气膜上表面高到低不翻相，下表面低到高翻相 π；接触点 t=0 仍相消。</p><p class="answer">暗环：rₘ=√(mλR)</p></article>
+        </div>
+        <p class="warning"><b>适用边界：</b>本页的“0 或 π”规则针对透明、非磁介质的近法线入射。斜入射时 s、p 偏振的符号规则会涉及布儒斯特角；全反射的相移还会连续依赖入射角，不能简单套用固定半波损失。</p>
+    </section>
+
+    <footer class="sources card"><h2>资料与案例来源</h2><p><a href="https://openstax.org/books/university-physics-volume-3/pages/3-4-interference-in-thin-films" target="_blank" rel="noreferrer">OpenStax：反射相变、肥皂膜与增透膜</a> · <a href="https://sciencedemonstrations.fas.harvard.edu/presentations/newtons-rings" target="_blank" rel="noreferrer">Harvard：牛顿环演示与中心暗斑</a> · <a href="https://galileoandeinstein.phys.virginia.edu/Elec_Mag/2022_Lectures/EM_46_Plane_Electromagnetic_Waves.html" target="_blank" rel="noreferrer">University of Virginia：菲涅耳系数与反射相位</a></p></footer>
+</main>
+<script type="module">
+import { thinFilmOptics } from "/lab-physics.js";
+
+(() => {
+    const $=id=>document.getElementById(id),canvas=$('scene'),wrap=$('canvasWrap'),ctx=canvas.getContext('2d');
+    const wavelength=$('wavelength'),nFrom=$('nFrom'),nTo=$('nTo'),thickness=$('thickness'),nTop=$('nTop'),nFilm=$('nFilm'),nSub=$('nSub'),radius=$('radius'),centerGap=$('centerGap'),animateLight=$('animateLight'),showEquivalent=$('showEquivalent'),readout=$('readout'),canvasNote=$('canvasNote');
+    let scene='interface',cssW=0,cssH=0,dpr=1,time=0,previous=performance.now();
+    let raf=0,needsRender=true,lastReadout='';
+    function setReadout(html){if(html!==lastReadout){readout.innerHTML=html;lastReadout=html}}
+    function moving(){return animateLight.checked&&scene!=='rings'}
+    function invalidate(){needsRender=true;if(!raf&&!document.hidden)raf=requestAnimationFrame(frame)}
+    const motionPreference=matchMedia('(prefers-reduced-motion: reduce)');
+    if(motionPreference.matches)animateLight.checked=false;
+    function resize(){const r=wrap.getBoundingClientRect();cssW=Math.max(1,r.width);cssH=Math.max(570,r.height);dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(cssW*dpr);canvas.height=Math.round(cssH*dpr);canvas.style.width=cssW+'px';canvas.style.height=cssH+'px';ctx.setTransform(dpr,0,0,dpr,0,0);invalidate()}
+    function label(text,x,y,color='#d8e6f3',align='center',size=12){ctx.font=`600 ${size}px "Microsoft YaHei",sans-serif`;ctx.textAlign=align;const m=ctx.measureText(text),p=5,left=align==='left'?x-p:align==='right'?x-m.width-p:x-m.width/2-p;ctx.fillStyle='rgba(2,8,15,.82)';ctx.fillRect(left,y-size-4,m.width+p*2,size+10);ctx.fillStyle=color;ctx.fillText(text,x,y)}
+    function arrow(x1,y1,x2,y2,color='#e2e8f0'){const a=Math.atan2(y2-y1,x2-x1);ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-9*Math.cos(a-.45),y2-9*Math.sin(a-.45));ctx.lineTo(x2-9*Math.cos(a+.45),y2-9*Math.sin(a+.45));ctx.closePath();ctx.fill()}
+    function wavelengthRgb(nm){let r=0,g=0,b=0;if(nm<440){r=-(nm-440)/60;b=1}else if(nm<490){g=(nm-440)/50;b=1}else if(nm<510){g=1;b=-(nm-510)/20}else if(nm<580){r=(nm-510)/70;g=1}else if(nm<645){r=1;g=-(nm-645)/65}else r=1;const f=nm<420?.45+.55*(nm-400)/20:nm>680?.45+.55*(700-nm)/20:1;return[Math.round(255*r*f),Math.round(255*g*f),Math.round(255*b*f)]}
+    function rgbString(rgb,a=1){return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`}
+    function wave(x1,x2,y,amp,period,phase,direction,color,origin=x1){ctx.beginPath();const steps=Math.max(60,Math.floor(Math.abs(x2-x1)/3));for(let i=0;i<=steps;i++){const q=i/steps,x=x1+(x2-x1)*q,arg=direction*(x-origin)/period*Math.PI*2-phase,py=y+amp*Math.sin(arg);i?ctx.lineTo(x,py):ctx.moveTo(x,py)}ctx.strokeStyle=color;ctx.lineWidth=2.4;ctx.lineCap='round';ctx.stroke()}
+    function photonPath(points,offset,color){if(!animateLight.checked)return;const lengths=[],total=points.slice(1).reduce((s,p,i)=>{const d=Math.hypot(p.x-points[i].x,p.y-points[i].y);lengths.push(d);return s+d},0);let target=((time*.00016+offset)%1)*total,p=points[0];for(let i=0;i<lengths.length;i++){if(target<=lengths[i]){const q=lengths[i]?target/lengths[i]:0;p={x:points[i].x+(points[i+1].x-points[i].x)*q,y:points[i].y+(points[i+1].y-points[i].y)*q};break}target-=lengths[i]}ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=12;ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0}
+    function drawInterface(w,h,rgb){const ni=+nFrom.value/100,nt=+nTo.value/100,r=(ni-nt)/(ni+nt),R=r*r,T=1-R,xI=w*.55,top=75,lane=(h-165)/3,period=92*(+wavelength.value/550),phase=time*.004*(550/+wavelength.value);ctx.fillStyle='rgba(14,116,144,.11)';ctx.fillRect(0,0,xI,h);ctx.fillStyle='rgba(124,58,237,.10)';ctx.fillRect(xI,0,w-xI,h);ctx.strokeStyle='#cbd5e1';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(xI,35);ctx.lineTo(xI,h-35);ctx.stroke();label(`介质 1 · n₁=${ni.toFixed(2)}`,xI*.5,38,'#7dd3fc');label(`介质 2 · n₂=${nt.toFixed(2)}`,xI+(w-xI)/2,38,'#d8b4fe');
+        const y1=top+lane*.45,y2=top+lane*1.42,y3=top+lane*2.39,color=rgbString(rgb);wave(45,xI,y1,31,period/ni,phase,1,color,xI);arrow(60,y1-48,155,y1-48,color);label('入射电场 Eᵢ',105,y1-58,color);
+        if(Math.abs(r)>.002){wave(45,xI,y2,31*Math.abs(r),period/ni,phase+(r<0?Math.PI:0),-1,rgbString(rgb,.9),xI);arrow(155,y2-48,60,y2-48,rgbString(rgb,.9));label(`反射电场 Eᵣ = ${r.toFixed(3)}Eᵢ`,115,y2-58,r<0?'#d8b4fe':'#86efac')}else label('n₁=n₂：无反射波',xI*.5,y2,'#94a3b8');
+        wave(xI,w-45,y3,31*2*ni/(ni+nt),period/nt,phase,1,rgbString(rgb,.9),xI);arrow(xI+25,y3-48,Math.min(w-55,xI+120),y3-48,rgbString(rgb,.9));label('透射电场 Eₜ',xI+85,y3-58,color);
+        [y1,y2,y3].forEach(y=>{ctx.strokeStyle='rgba(148,163,184,.16)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(35,y);ctx.lineTo(w-35,y);ctx.stroke()});const flip=r<0?'π（反号）':r>0?'0（同号）':'—';label(`r=(n₁−n₂)/(n₁+n₂)=${r.toFixed(3)}`,w*.75,h-55,'#fde68a');label(`反射相变：${flip}`,w*.28,h-55,r<0?'#d8b4fe':'#86efac');if(showEquivalent.checked&&r<0)label('π ↔ 等效光程 λ/2；不是能量损失',w*.5,h-24,'#f0abfc');setReadout(`<strong>${r<0?'低 n → 高 n：发生半波损失':r>0?'高 n → 低 n：无半波损失':'折射率相同：没有反射'}</strong><span class="phase">反射相变 = ${flip}</span><br>振幅反射率 r=${r.toFixed(3)}；能量反射率 R=r²=${(R*100).toFixed(1)}%<br>无吸收时 R+T=${((R+T)*100).toFixed(0)}%，能量并未“损失一半”。`)}
+    function drawFilm(w,h,rgb){
+        const a=+nTop.value/100,n=+nFilm.value/100,b=+nSub.value/100;
+        const t=+thickness.value,lambda=+wavelength.value;
+        const optics=thinFilmOptics(a,n,b,t,lambda);
+        const {phase1:p1,phase2:p2,propagationPhase:path,phaseDifference:delta,reflectance:R}=optics;
+        const yTop=h*.31,yBottom=h*.62,filmH=yBottom-yTop,x0=w*.28,x1=w*.72;
+        ctx.fillStyle='rgba(14,116,144,.10)';ctx.fillRect(0,0,w,yTop);
+        ctx.fillStyle=rgbString(rgb,.09);ctx.fillRect(0,yTop,w,filmH);
+        ctx.fillStyle='rgba(100,116,139,.20)';ctx.fillRect(0,yBottom,w,h-yBottom);
+        ctx.strokeStyle='#7dd3fc';ctx.lineWidth=2;ctx.beginPath();
+        ctx.moveTo(0,yTop);ctx.lineTo(w,yTop);ctx.moveTo(0,yBottom);ctx.lineTo(w,yBottom);ctx.stroke();
+        label(`上层 n₀=${a.toFixed(2)}`,w*.12,48,'#7dd3fc');
+        label(`薄膜 n₁=${n.toFixed(2)} · t=${t} nm`,w*.5,(yTop+yBottom)/2,'#fde68a');
+        label(`基底 n₂=${b.toFixed(2)}`,w*.12,h-45,'#cbd5e1');
+        const source={x:w*.38,y:55},hit1={x:x0,y:yTop},out1={x:w*.17,y:82};
+        const hit2={x:x1,y:yBottom},out2={x:w*.82,y:82};
+        ctx.strokeStyle=rgbString(rgb,.86);ctx.lineWidth=2.6;ctx.beginPath();
+        ctx.moveTo(source.x,source.y);ctx.lineTo(hit1.x,hit1.y);
+        if(p1!==null){ctx.lineTo(out1.x,out1.y)}
+        if(p2!==null){ctx.moveTo(hit1.x,hit1.y);ctx.lineTo(hit2.x,hit2.y);ctx.lineTo(out2.x,out2.y)}
+        ctx.stroke();arrow(source.x,source.y,hit1.x,hit1.y,rgbString(rgb));
+        if(p1!==null){arrow(hit1.x,hit1.y,out1.x,out1.y,rgbString(rgb));photonPath([source,hit1,out1],0,rgbString(rgb))}
+        if(p2!==null){arrow(hit2.x,hit2.y,out2.x,out2.y,rgbString(rgb));photonPath([source,hit1,hit2,out2],.38,rgbString(rgb))}
+        const phaseText=p=>p===null?'无反射':p?'π':'0';
+        const relative=delta===null?'无两束反射光可比较':Math.abs(p2-p1)>.1?'π':'0';
+        label(`光束①：上表面 ${p1===null?'无反射':'反射相变 '+phaseText(p1)}`,w*.2,yTop-18,p1?'#d8b4fe':'#86efac');
+        label(`光束②：下表面 ${p2===null?'无反射':'反射相变 '+phaseText(p2)}`,w*.76,yBottom+27,p2?'#d8b4fe':'#86efac');
+        label('光路和膜厚为示意；强度按法线入射计算',w*.5,yTop+25,'#94a3b8');
+        if(showEquivalent.checked){
+            label(`膜内往返光程 2nt = ${(2*n*t).toFixed(0)} nm`,w*.53,yBottom-18,'#fde68a');
+            label(`反射相变之差：${relative==='π'?'π ↔ λ/2':relative}`,w*.5,h-78,'#f0abfc');
+        }
+        const barX=w*.18,barY=h-34,barW=w*.64;
+        ctx.fillStyle='#14263a';ctx.fillRect(barX,barY,barW,12);
+        ctx.fillStyle=rgbString(rgb,.95);ctx.fillRect(barX,barY,barW*R,12);
+        label(`薄膜总反射率 R = ${(R*100).toFixed(2)}%`,w*.5,barY-10,R<.01?'#86efac':'#fde68a');
+        const phaseLine=delta===null?'没有两束反射光，相对相位不适用':`总相位差 Δφ = ${(delta/Math.PI).toFixed(2)}π`;
+        setReadout(`<strong>薄膜相位与实际反射率</strong>① 上表面：${phaseText(p1)}<br>② 下表面：${phaseText(p2)}；相对反射相变 ${relative}<br><span class="hot">传播相位 4πnt/λ = ${(path/Math.PI).toFixed(2)}π</span><br><span class="phase">${phaseLine}</span><br>R=${(R*100).toFixed(2)}%；采用无吸收、法线入射菲涅耳模型，计入膜内多次反射。`);
+    }
+    function drawRings(w,h,rgb){const lambda=+wavelength.value*1e-9,R=+radius.value/100,t0=+centerGap.value*1e-9,cx=w*.68,cy=h*.48,maxRad=Math.min(w*.28,h*.34),physicalMax=.0038;ctx.fillStyle='rgba(15,23,42,.9)';ctx.fillRect(0,0,w,h);for(let rp=maxRad;rp>=0;rp-=1.2){const r=rp/maxRad*physicalMax,t=t0+r*r/(2*R),delta=4*Math.PI*t/lambda+Math.PI,I=.5*(1+Math.cos(delta)),f=.07+.93*I;ctx.fillStyle=`rgb(${Math.round(rgb[0]*f)},${Math.round(rgb[1]*f)},${Math.round(rgb[2]*f)})`;ctx.beginPath();ctx.arc(cx,cy,rp,0,Math.PI*2);ctx.fill()}ctx.strokeStyle='rgba(226,232,240,.55)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx-maxRad-12,cy);ctx.lineTo(cx+maxRad+12,cy);ctx.moveTo(cx,cy-maxRad-12);ctx.lineTo(cx,cy+maxRad+12);ctx.stroke();label('反射光牛顿环',cx,cy-maxRad-22,'#e2e8f0', 'center',14);
+        const xL=w*.08,xR=w*.39,yPlate=h*.67,curveY=h*.28;ctx.fillStyle='rgba(125,211,252,.12)';ctx.beginPath();ctx.moveTo(xL,curveY);ctx.quadraticCurveTo((xL+xR)/2,yPlate-5,xR,curveY);ctx.lineTo(xR,curveY-25);ctx.lineTo(xL,curveY-25);ctx.closePath();ctx.fill();ctx.strokeStyle='#7dd3fc';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(xL,curveY);ctx.quadraticCurveTo((xL+xR)/2,yPlate-5,xR,curveY);ctx.stroke();ctx.fillStyle='rgba(148,163,184,.28)';ctx.fillRect(xL-12,yPlate,xR-xL+24,38);ctx.strokeStyle='#cbd5e1';ctx.strokeRect(xL-12,yPlate,xR-xL+24,38);label('凸透镜',xL+22,curveY-12,'#7dd3fc');label('空气薄膜',w*.235,yPlate-20,'#fde68a');label('平板玻璃',w*.235,yPlate+62,'#cbd5e1');
+        const mid=(xL+xR)/2;arrow(mid-35,70,mid-35,yPlate-22,rgbString(rgb));arrow(mid-35,yPlate-22,mid-78,90,rgbString(rgb));arrow(mid+12,70,mid+12,yPlate,rgbString(rgb));arrow(mid+12,yPlate,mid+56,90,rgbString(rgb));label('玻璃→空气：0',mid-70,h*.46,'#86efac');label('空气→玻璃：π',mid+68,h*.57,'#d8b4fe');const centerDelta=4*Math.PI*t0/lambda+Math.PI,centerI=.5*(1+Math.cos(centerDelta));if(showEquivalent.checked)label('中心 t₀=0 时：光程差 0 + 反射相变 π',w*.235,h-80,'#f0abfc');label(`中心亮度 ${(centerI*100).toFixed(0)}%`,cx,cy+maxRad+32,centerI<.2?'#94a3b8':'#fde68a');setReadout(`<strong>牛顿环（反射光）</strong>空气膜上表面：反射相变 0<br>空气膜下表面：反射相变 π<br><span class="hot">t(r)=t₀+r²/(2R)</span><br><span class="phase">暗环 rₘ=√[(mλ−2t₀)R]</span><br>t₀=0 时中心 Δφ=π，因此为暗斑。`)}
+    function updateText(){const set=(id,v)=>$(id).textContent=v;set('wavelengthValue',wavelength.value+' nm');set('nFromValue',(+nFrom.value/100).toFixed(2));set('nToValue',(+nTo.value/100).toFixed(2));set('thicknessValue',thickness.value+' nm');set('nTopValue',(+nTop.value/100).toFixed(2));set('nFilmValue',(+nFilm.value/100).toFixed(2));set('nSubValue',(+nSub.value/100).toFixed(2));set('radiusValue',(+radius.value/100).toFixed(2)+' m');set('centerGapValue',centerGap.value+' nm');invalidate()}
+    function setScene(next){scene=next;document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('active',b.dataset.scene===next));document.querySelectorAll('.pane').forEach(p=>p.hidden=p.dataset.pane!==next);canvasNote.textContent=next==='interface'?'拖动 n₁、n₂，观察反射系数跨过零点时波形如何翻相':next==='film'?'改变膜厚，观察几何光程与反射相变怎样共同决定明暗':'改变波长、曲率半径或中心气隙，观察环纹与中心亮度';invalidate()}
+    function preset(name){document.querySelectorAll('.preset').forEach(b=>b.classList.toggle('active',b.dataset.preset===name));if(name==='soap'){nTop.value=100;nFilm.value=133;nSub.value=100;thickness.value=0}else{nTop.value=100;nFilm.value=138;nSub.value=152;thickness.value=Math.round(+wavelength.value/(4*1.38))}updateText()}
+    document.querySelectorAll('.mode').forEach(b=>b.addEventListener('click',()=>setScene(b.dataset.scene)));document.querySelectorAll('.preset').forEach(b=>b.addEventListener('click',()=>preset(b.dataset.preset)));[wavelength,nFrom,nTo,thickness,nTop,nFilm,nSub,radius,centerGap,animateLight,showEquivalent].forEach(el=>el.addEventListener('input',updateText));new ResizeObserver(resize).observe(wrap);window.addEventListener('resize',resize);
+    function frame(now){
+        raf=0;
+        const dt=window.PhysicsLab?PhysicsLab.frameScale(now,previous):1;
+        previous=now;
+        if(moving())time+=16.67*dt;
+        if(needsRender||moving()){
+            const rgb=wavelengthRgb(+wavelength.value),w=cssW,h=cssH;
+            ctx.clearRect(0,0,w,h);
+            const bg=ctx.createLinearGradient(0,0,0,h);
+            bg.addColorStop(0,'#071827');bg.addColorStop(1,'#030a12');
+            ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+            if(scene==='interface')drawInterface(w,h,rgb);
+            else if(scene==='film')drawFilm(w,h,rgb);
+            else drawRings(w,h,rgb);
+            needsRender=false;
+        }
+        if(moving()&&!document.hidden)raf=requestAnimationFrame(frame);
+    }
+    canvas.addEventListener('keydown',event=>{
+        if(event.code==='Space'){event.preventDefault();animateLight.checked=!animateLight.checked;invalidate()}
+    });
+    motionPreference.addEventListener('change',event=>{if(event.matches){animateLight.checked=false;invalidate()}});
+    document.addEventListener('visibilitychange',()=>{
+        if(document.hidden){cancelAnimationFrame(raf);raf=0}
+        else{previous=performance.now();invalidate()}
+    });
+    const params=new URLSearchParams(location.search),initialScene=params.get('scene'),initialPreset=params.get('preset');if(initialPreset==='soap'||initialPreset==='coating')preset(initialPreset);if(['interface','film','rings'].includes(initialScene))setScene(initialScene);updateText();resize();invalidate();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+[
+  {
+    "id": "mechanics",
+    "name": "力学",
+    "color": "#f59e0b",
+    "animations": [
+      {
+        "title": "科里奥利效应：南北半球偏转方向",
+        "desc": "调节纬度、速度与运动方向，动态观察旋转地球上北半球右偏、南半球左偏及赤道零水平偏转。",
+        "image": "/covers/coriolis.svg",
+        "link": "/科里奥利效应.html",
+        "publishedAt": "2026-08-12T08:38:22+08:00"
+      },
+      {
+        "title": "马赫锥：超声速与冲击波包络",
+        "desc": "调节马赫数，对比亚声速、声速与超声速波前，动态观察冲击波包络及马赫角的形成。",
+        "image": "/covers/mach-cone.svg",
+        "link": "/马赫锥.html",
+        "publishedAt": "2026-08-07T20:40:45+08:00"
+      },
+      {
+        "title": "向量叉乘：大小、方向与分量计算",
+        "desc": "旋转三维视角，动态观察平行四边形面积与右手定则，并练习竞赛常用的叉积分量展开。",
+        "image": "/covers/cross-product.svg",
+        "link": "/向量叉乘.html",
+        "publishedAt": "2026-08-05T21:58:57+08:00"
+      },
+      {
+        "title": "抛体运动轨迹族与包络线",
+        "desc": "固定初速度、连续改变发射角，观察轨迹族如何形成安全抛物线，并用切点与判别式理解包络线。",
+        "image": "/covers/projectile-envelope.svg",
+        "link": "/抛体运动包络线.html",
+        "publishedAt": "2026-08-05T20:12:28+08:00"
+      },
+      {
+        "title": "速度叠加与摆线分析（车轮）",
+        "desc": "直观拆解轮子滚动时的平动与转动速度矢量叠加，探究长幅与短幅摆线成因。",
+        "image": "/covers/lunzi.png",
+        "link": "/轮子v1.html",
+        "publishedAt": "2026-08-05T16:57:52+08:00"
+      },
+      {
+        "title": "竖直平面圆轨道运动模型",
+        "desc": "动态演示不同初速下，小球在竖直轨道的完整圆周、脱轨以及摆动现象。",
+        "image": "/covers/yuanzhou.png",
+        "link": "/圆周运动v1.html",
+        "publishedAt": "2026-08-05T16:57:52+08:00"
+      },
+      {
+        "title": "小船渡河与速度合成",
+        "desc": "自定义水流速度与静水船速，寻找划船过河的最短时间与最短位移解。",
+        "image": "/covers/xiaochuan.png",
+        "link": "/小船渡河v1.html",
+        "publishedAt": "2026-08-05T16:57:52+08:00",
+        "hidden": true
+      },
+      {
+        "title": "平抛独立性与等时对比",
+        "desc": "双球同源坠落，由水平动态连线验证垂直方向上的运动彼此等效、独立且等时。",
+        "image": "/covers/pingpao.png",
+        "link": "/平抛对比v1.html",
+        "publishedAt": "2026-08-05T16:57:52+08:00",
+        "hidden": true
+      },
+      {
+        "title": "人造卫星变轨与演化",
+        "desc": "以万有引力引擎为核心，通过火箭点火瞬间加速体验圆轨道、椭圆与双曲线的变换。",
+        "image": "/covers/weixing.png",
+        "link": "/卫星变轨v1.html",
+        "publishedAt": "2026-08-05T16:57:52+08:00",
+        "hidden": true
+      },
+      {
+        "title": "第一宇宙速度 (牛顿大炮)",
+        "desc": "在地球极点高山极速开炮，用不同初速度推演从抛物线坠落到贴地环绕入轨的质变。",
+        "image": "/covers/niudun.jpg",
+        "link": "/第一宇宙速度v1.html",
+        "publishedAt": "2026-08-05T16:57:52+08:00"
+      }
+    ]
+  },
+  {
+    "id": "electromagnetism",
+    "name": "电磁学",
+    "color": "#8b5cf6",
+    "animations": [
+      {
+        "title": "镜像法：感应电荷与虚拟像电荷",
+        "desc": "从边界条件与唯一性定理出发，对比接地平面、有限中性板以及接地/不接地实心球和球壳的解析镜像解与数值边界解。",
+        "image": "/covers/image-charge.svg",
+        "link": "/镜像法感应电荷.html",
+        "publishedAt": "2026-08-13T18:00:00+08:00",
+        "hidden": true
+      },
+      {
+        "title": "示波器原理：扫描、偏转与同步",
+        "desc": "联动观察输入正弦电压、锯齿扫描电压与荧光屏轨迹，对比扫描周期相等和加倍时的稳定波形。",
+        "image": "/covers/oscilloscope.svg",
+        "link": "/示波器原理.html",
+        "publishedAt": "2026-08-13T13:56:32+08:00"
+      },
+      {
+        "title": "上边界磁场中的带电粒子（旋转圆法）",
+        "desc": "从固定点以不同方向发射，动态观察轨迹圆与上方边界板的交点、圆心角和运动弧长。",
+        "image": "/covers/bounded-magnetic-circle.svg",
+        "link": "/有界磁场旋转圆.html",
+        "publishedAt": "2026-08-08T21:36:52+08:00"
+      },
+      {
+        "title": "带电粒子复合场运动（配速法）",
+        "desc": "正交电磁场与重力场下，带电粒子轨迹的“配速法”与等效轮子模型动态演示。",
+        "image": "/covers/peisu.png",
+        "link": "/配速v1.html",
+        "publishedAt": "2026-08-05T16:57:52+08:00"
+      }
+    ]
+  },
+  {
+    "id": "optics",
+    "name": "光学",
+    "color": "#0ea5e9",
+    "animations": [
+      {
+        "title": "半波损失：反射相位与薄膜干涉",
+        "desc": "从菲涅耳反射系数出发，动态比较 0 与 π 相变，并联动演示肥皂膜、增透膜和牛顿环。",
+        "image": "/covers/half-wave-loss.svg",
+        "link": "/半波损失.html",
+        "publishedAt": "2026-08-15T13:00:00+08:00"
+      },
+      {
+        "title": "惠更斯原理：次级子波与波前",
+        "desc": "逐帧观察波前上各点产生次级子波，并由公切包络形成新波前；支持平面波、点波源与单缝衍射。",
+        "image": "/covers/huygens.svg",
+        "link": "/惠更斯原理.html",
+        "publishedAt": "2026-08-07T20:27:30+08:00"
+      },
+      {
+        "title": "多维波的叠加与演化（波的干涉）",
+        "desc": "自由调整双源独立起振时间与方向，全场景解构波的相干原理。",
+        "image": "/covers/wave.png",
+        "link": "/波的干涉v1.html",
+        "publishedAt": "2026-08-05T16:57:52+08:00"
+      },
+      {
+        "title": "驻波的形成与振动规律",
+        "desc": "叠加两列等振幅反向行波，动态观察波节、波腹、振幅包络和相邻波段的相位关系。",
+        "image": "/covers/standing-wave.jpg",
+        "link": "/驻波演示v1.html",
+        "publishedAt": "2026-08-05T18:12:18+08:00"
+      }
+    ]
+  },
+  {
+    "id": "thermodynamics",
+    "name": "热学",
+    "color": "#ef4444",
+    "animations": []
+  },
+  {
+    "id": "modern-physics",
+    "name": "近代物理",
+    "color": "#10b981",
+    "animations": []
+  },
+  {
+    "id": "community-tools",
+    "name": "留言工具区",
+    "color": "#14b8a6",
+    "animations": [
+      {
+        "title": "动画需求留言板",
+        "desc": "告诉我你想看懂的物理过程、希望调节的参数或需要演示的题目，需求会在这里公开交流。",
+        "icon": "✦",
+        "link": "/留言工具区.html",
+        "publishedAt": "2026-08-23T19:20:00+08:00"
+      },
+      {
+        "title": "课堂转盘点名",
+        "desc": "导入或粘贴学生名单，使用带公平权重和近期回避机制的转盘随机点名。",
+        "icon": "🎡",
+        "link": "/课堂点名系统.html",
+        "publishedAt": "2026-08-23T19:18:00+08:00"
+      }
+    ]
+  },
+  {
+    "id": "exercise-demo",
+    "name": "练习题演示",
+    "color": "#f97316",
+    "animations": [
+      {
+        "title": "双凸透镜组合成像｜2021 清华强基",
+        "desc": "从焦度相加出发，动态追踪主光线，解释两片相同凸透镜为何在屏上形成等大倒立矩形实像。",
+        "image": "/covers/double-convex-lens.svg",
+        "link": "/双凸透镜组合成像.html",
+        "publishedAt": "2026-08-14T14:00:00+08:00"
+      },
+      {
+        "title": "热路面“水光”与海市蜃楼",
+        "desc": "从题目情境出发，动态观察热路面附近空气折射率的分层变化、弯曲光路与虚像形成。",
+        "image": "/exercise/hot-road-question.png",
+        "link": "/热路面蜃景演示.html",
+        "publishedAt": "2026-08-05T18:31:37+08:00"
+      }
+    ]
+  }
+]

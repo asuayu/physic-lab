@@ -1,10 +1,17 @@
-const baseUrl = process.env.COMMENTS_TEST_URL || "http://127.0.0.1:8787";
-const adminToken = process.env.COMMENTS_TEST_ADMIN_TOKEN || "local-admin-token";
-const testPage = "/科里奥利效应.html";
-const canonicalTestPage = "/科里奥利效应";
+const baseUrl = new URL(process.env.COMMENTS_TEST_URL || "http://127.0.0.1:8787").origin;
+const adminToken = process.env.COMMENTS_TEST_ADMIN_TOKEN || "local-admin-token-change-me";
 const turnstileToken = "XXXX.DUMMY.TOKEN.XXXX";
 const testRunId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const canonicalTestPage = `/__comments-test-${testRunId}`;
+const testPage = `${canonicalTestPage}.html`;
 const createdIds = [];
+const localTarget = ["localhost", "127.0.0.1", "[::1]"].includes(new URL(baseUrl).hostname);
+// Local workerd accepts an explicit edge header. Give each run a fresh test-only
+// address so deleted comments from earlier runs do not consume its IP quota.
+const testIp = `2001:db8:${crypto.randomUUID().replaceAll("-", "").slice(0, 20).match(/.{4}/g).join(":")}:1`;
+if (!localTarget && process.env.COMMENTS_TEST_ALLOW_REMOTE !== "1") {
+    throw new Error("This test writes comments. Use a local Wrangler URL, or explicitly set COMMENTS_TEST_ALLOW_REMOTE=1 for a disposable remote test environment.");
+}
 
 async function request(path, options = {}, expectedStatus = 200) {
     const response = await fetch(`${baseUrl}${path}`, {
@@ -12,9 +19,11 @@ async function request(path, options = {}, expectedStatus = 200) {
         headers: {
             origin: baseUrl,
             "user-agent": `physics-lab-comments-integration-test/${testRunId}`,
+            ...(localTarget ? { "cf-connecting-ip": testIp } : {}),
             ...(options.body ? { "content-type": "application/json" } : {}),
             ...options.headers,
         },
+        signal: AbortSignal.timeout(15_000),
     });
     const body = await response.json().catch(() => ({}));
     if (response.status !== expectedStatus) {
@@ -23,7 +32,7 @@ async function request(path, options = {}, expectedStatus = 200) {
     return body;
 }
 
-async function create(content, parentId = null, expectedStatus = 201) {
+async function create(content, parentId = null, expectedStatus = 201, requestId = crypto.randomUUID()) {
     const data = await request(
         "/api/comments",
         {
@@ -35,11 +44,12 @@ async function create(content, parentId = null, expectedStatus = 201) {
                 parentId,
                 website: "",
                 turnstileToken,
+                requestId,
             }),
         },
         expectedStatus,
     );
-    if (data.comment?.id) createdIds.push(data.comment.id);
+    if (data.comment?.id && !createdIds.includes(data.comment.id)) createdIds.push(data.comment.id);
     return data;
 }
 
@@ -53,10 +63,13 @@ async function remove(id) {
 
 try {
     const health = await request("/api/comments/health");
-    if (!health.ok || !health.turnstile) throw new Error("Health check did not report Turnstile enabled");
+    if (!health.ok || health.schemaVersion !== 2) throw new Error("Health check did not confirm the current schema");
 
     const suffix = testRunId;
-    const root = await create(`主留言 ${suffix}`);
+    const rootRequestId = crypto.randomUUID();
+    const root = await create(`主留言 ${suffix}`, null, 201, rootRequestId);
+    const replay = await create(`主留言 ${suffix}`, null, 200, rootRequestId);
+    if (!replay.replayed || replay.comment.id !== root.comment.id) throw new Error("Idempotent retry created another comment");
     const reply = await create(`回复 ${suffix}`, root.comment.id);
     await create(`主留言 ${suffix}`, null, 409);
     await create(`第二条 ${suffix}`);
@@ -94,7 +107,7 @@ try {
         throw new Error("Fully deleted threads were still returned or counted");
     }
 
-    console.log(`留言 API 集成测试通过：健康检查、路径归一化、发布、回复、重复检测、限流、软删除和线程保留。`);
+    console.log(`留言 API 集成测试通过：schema 健康检查、路径归一化、发布、幂等、回复、重复检测、限流、软删除和线程保留。`);
 } finally {
     for (const id of [...createdIds].reverse()) {
         try {

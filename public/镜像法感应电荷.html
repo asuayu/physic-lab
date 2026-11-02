@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07111d">
+  <meta name="description" content="动态对比接地导体平面的真实感应电荷与镜像法虚拟像电荷，并验证导体外电场等效。">
+  <title>镜像法：感应电荷与虚拟像电荷</title>
+  <link rel="stylesheet" href="/lab-common.css">
+  <script src="/lab-runtime.js"></script>
+  <style>
+    :root{color-scheme:dark;--bg:#07111d;--panel:#0d1b2b;--line:#243852;--text:#edf6ff;--muted:#91a6bf;--cyan:#58d9ff;--red:#ff6b78;--blue:#55a8ff;--gold:#ffc766;--green:#65e6aa}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 20% 0,#153252 0,transparent 35%),radial-gradient(circle at 90% 25%,#25183e 0,transparent 30%),var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif}.page{width:min(1380px,calc(100% - 28px));margin:auto;padding:22px 0 50px}.home{display:inline-flex;padding:8px 13px;border:1px solid #315478;border-radius:999px;color:#c8e8ff;text-decoration:none;font-weight:700;font-size:13px;background:#091725cc}.hero{display:grid;grid-template-columns:1fr auto;gap:25px;align-items:end;padding:38px 4px 24px}.kicker{color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase}.hero h1{margin:8px 0 12px;font-size:clamp(2rem,5vw,4.3rem);line-height:1.04;letter-spacing:-.045em}.hero h1 span{color:var(--gold)}.hero p{max-width:850px;margin:0;color:#a9bdd2;line-height:1.8}.equiv{padding:14px 18px;border:1px solid #2b4968;border-radius:15px;background:#0b1a2a}.equiv small{color:#718aa5}.equiv b{display:block;margin-top:4px;color:var(--green);font-size:19px}.compare{display:grid;grid-template-columns:1fr 1fr;gap:14px}.case{background:linear-gradient(145deg,#0e1d2eeb,#091522f5);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 20px 55px #0004}.case-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:15px 17px;border-bottom:1px solid #20344c}.case-title{display:flex;gap:10px;align-items:center}.number{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#193552;color:var(--cyan);font:800 12px ui-monospace,monospace}.case h2{font-size:16px;margin:0}.tag{font-size:11px;padding:5px 8px;border-radius:999px;color:#9fc1dd;border:1px solid #31506e}.canvas-wrap{position:relative;height:500px;background:#050d16}.canvas-wrap canvas{display:block;width:100%;height:100%}.caption{position:absolute;left:13px;bottom:12px;right:13px;padding:8px 10px;border:1px solid #29415b;border-radius:9px;background:#07131ddd;backdrop-filter:blur(7px);font-size:12px;color:#8fa8bd}.caption b{color:#dff4ff}.controls{display:grid;grid-template-columns:1.2fr 1.2fr .9fr 1fr auto;gap:12px;align-items:end;margin:14px 0;padding:15px 17px;border:1px solid var(--line);border-radius:17px;background:#0b1928}.control label{display:flex;justify-content:space-between;gap:8px;margin-bottom:7px;color:#a6b9cc;font-size:12px}.control output{color:var(--cyan);font-weight:800;font-variant-numeric:tabular-nums}input[type=range]{width:100%;accent-color:var(--cyan)}button{min-height:38px;border:1px solid #315373;border-radius:10px;background:#13283d;color:#d8efff;font-weight:750;cursor:pointer;padding:8px 12px}button:hover{border-color:var(--cyan)}button.active{background:#174361;border-color:var(--cyan);color:#fff}.toggle{display:flex;gap:7px}.toggle button{flex:1}.switch{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:38px;color:#a6b9cc;font-size:12px}.switch input{width:19px;height:19px;accent-color:var(--cyan)}.isolated-plane{margin:0 0 14px}.isolated-plane .canvas-wrap{height:430px}.isolated-plane .number{color:var(--gold)}.insights{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:14px}.info{padding:17px;background:#0c1a29;border:1px solid var(--line);border-radius:17px}.info h3{margin:0 0 8px;font-size:15px;color:#dcefff}.info p{margin:0;color:#8fa6ba;font-size:13px;line-height:1.75}.formula{font-family:"Cambria Math","Times New Roman",serif;color:#dff5ff;font-size:17px}.formula strong{color:var(--gold)}.warning{border-color:#664f2e;background:#201b14}.warning h3{color:var(--gold)}.sphere-section{margin-top:34px}.section-heading{display:flex;justify-content:space-between;gap:20px;align-items:end;margin-bottom:14px}.section-heading h2{margin:0 0 6px;font-size:clamp(1.6rem,3vw,2.45rem)}.section-heading p{margin:0;color:#8fa6ba;line-height:1.7;max-width:780px}.sphere-controls{grid-template-columns:1fr 1fr 1.2fr}.sphere-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.sphere-case{min-width:0}.sphere-canvas{height:355px}.sphere-note{padding:11px 15px;border-top:1px solid #20344c;color:#8fa6ba;font-size:12px;line-height:1.6}.sphere-note b{color:#e5f5ff}.grounded .number{color:var(--green)}.isolated .number{color:var(--gold)}.sources{margin-top:16px;color:#70869b;font-size:11px;line-height:1.8}.sources a{color:#86c9ee}@media(max-width:1000px){.compare{grid-template-columns:1fr}.controls{grid-template-columns:1fr 1fr}.insights{grid-template-columns:1fr 1fr}.canvas-wrap{height:460px}.sphere-grid{grid-template-columns:1fr}.sphere-canvas{height:400px}}@media(max-width:620px){.page{width:calc(100% - 16px);padding-top:10px}.hero{grid-template-columns:1fr;padding-top:26px}.equiv{display:none}.controls,.insights,.sphere-controls{grid-template-columns:1fr}.canvas-wrap{height:420px}.isolated-plane .canvas-wrap{height:390px}.sphere-canvas{height:350px}.case-head{align-items:flex-start}.tag{display:none}.section-heading{display:block}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+    .method-panel{margin-bottom:16px;padding:18px;border:1px solid var(--line);border-radius:19px;background:linear-gradient(140deg,#0c1d2d,#091522)}.method-top{display:flex;justify-content:space-between;gap:24px;align-items:start}.method-top h2{margin:0 0 7px;font-size:20px}.method-top p{margin:0;color:#8fa6ba;line-height:1.75;max-width:760px}.method-badge{flex:none;padding:9px 12px;border-radius:10px;background:#112b3d;border:1px solid #28536e;color:var(--cyan);font:800 12px ui-monospace,monospace}.method-steps{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:15px}.method-step{padding:12px;border:1px solid #203a52;border-radius:12px;background:#081622}.method-step b{display:block;color:#dff4ff;font-size:13px;margin:6px 0}.method-step p{margin:0;color:#7f99ae;font-size:11px;line-height:1.6}.method-step span{color:var(--cyan);font:800 11px ui-monospace,monospace}.validity{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.validity div{padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.65}.validity .yes{background:#0d2a21;border:1px solid #255b46;color:#9ed9bd}.validity .no{background:#271c18;border:1px solid #684433;color:#e2b49f}.probe-readout{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:9px 11px;border-radius:10px;background:#07131e;border:1px solid #29435b;color:#90a9bc;font-size:12px}.probe-readout b{color:var(--cyan)}.probe-readout output{color:var(--green);font:700 12px ui-monospace,monospace}.science-note{margin:12px 0 0;padding:11px 13px;border-left:3px solid var(--gold);background:#1b1812;color:#bcae8e;font-size:12px;line-height:1.7}.insights{grid-template-columns:repeat(4,1fr)}@media(max-width:1000px){.insights{grid-template-columns:1fr 1fr}}@media(max-width:900px){.method-steps{grid-template-columns:1fr 1fr}.method-top{display:block}.method-badge{display:inline-block;margin-top:10px}}@media(max-width:620px){.method-steps,.validity,.insights{grid-template-columns:1fr}.probe-readout{grid-template-columns:1fr}}
+  </style>
+</head>
+<body class="document-lab">
+<main class="page">
+  <a href="/" class="home">← 返回展厅</a>
+  <header class="hero"><div><div class="kicker">Method of Images · Electrostatics</div><h1>真实感应电荷 <span>vs.</span> 虚拟像电荷</h1><p>一个点电荷靠近接地无限大导体平面。左图保留真实导体与连续分布的感应电荷；右图移走导体，放入一个等量异号、关于平面对称的虚拟像电荷。观察两种模型在导体外为何给出完全相同的电场。</p></div><div class="equiv"><small>导体外半空间</small><b>E<sub>真实</sub> = E<sub>镜像</sub></b></div></header>
+
+  <section class="method-panel"><div class="method-top"><div><h2>电像法的本质：用容易计算的电荷，替换难处理的导体边界</h2><p>它不是在猜导体内部藏着什么电荷，而是在选定的求解区域内，构造另一组位于区域之外的虚拟电荷，使电势满足同样的边界条件。唯一性定理保证这个构造就是该区域的真实解。</p></div><div class="method-badge">边界条件 → 等效源</div></div>
+    <div class="method-steps"><div class="method-step"><span>STEP 01</span><b>选定求解区域 Ω</b><p>先说清楚要计算导体外、空腔内，还是两个边界之间。</p></div><div class="method-step"><span>STEP 02</span><b>写出边界条件</b><p>接地面 V=0；孤立导体是未知等势面，还要满足给定总电荷。</p></div><div class="method-step"><span>STEP 03</span><b>把像放在 Ω 外</b><p>像电荷不得放进需要求解的区域，否则会引入不存在的奇点。</p></div><div class="method-step"><span>STEP 04</span><b>验证而非类比</b><p>检查边界电势、无穷远条件及真实电荷位置；不是只看图形对称。</p></div><div class="method-step"><span>STEP 05</span><b>在 Ω 内使用结果</b><p>由 V 求 E、σ 和真实电荷受力；像电荷位置处的场没有物理意义。</p></div></div>
+    <div class="validity"><div class="yes"><b>可以：</b>平面、球面、圆柱面等能用少量像电荷精确满足边界的高对称问题；也可由数值等效源逼近一般边界。</div><div class="no"><b>不可以：</b>把像电荷当成真实感应电荷、把解延伸进被替换的导体区域，或把静态示踪点误认为电子在持续流动。</div></div>
+  </section>
+
+  <section class="compare">
+    <article class="case"><div class="case-head"><div class="case-title"><span class="number">A</span><h2>真实物理情形</h2></div><span class="tag">导体 + 感应面电荷</span></div><div class="canvas-wrap"><canvas id="realCanvas" role="img" aria-label="真实点电荷与接地导体表面感应电荷的动态电场"></canvas><div class="caption"><b>真实存在：</b>点电荷 q、金属自由电子和不均匀表面电荷 σ(x)</div></div></article>
+    <article class="case"><div class="case-head"><div class="case-title"><span class="number">B</span><h2>镜像法等效模型</h2></div><span class="tag">移走导体 + 虚拟像电荷</span></div><div class="canvas-wrap"><canvas id="imageCanvas" role="img" aria-label="真实点电荷与虚拟像电荷产生的动态电场"></canvas><div class="caption"><b>计算替身：</b>在镜像位置放置 −q；它不是真实电荷</div></div></article>
+  </section>
+
+  <section class="controls" aria-label="演示控制">
+    <div class="control"><label for="distance">点电荷到平面距离 d <output id="distanceOut">1.40</output></label><input id="distance" type="range" min="0.75" max="2.2" step="0.05" value="1.4"></div>
+    <div class="control"><label for="magnitude">电荷量大小 |q| <output id="magnitudeOut">1.00</output></label><input id="magnitude" type="range" min="0.4" max="1.8" step="0.05" value="1"></div>
+    <div class="control"><label>真实电荷符号</label><div class="toggle"><button id="positive" data-lab-share class="active">+q</button><button id="negative" data-lab-share>−q</button></div></div>
+    <label class="switch">显示等势背景 <input id="potential" type="checkbox" checked></label>
+    <button id="play">暂停示踪动画</button>
+    <div class="probe-readout" id="probeReadout"><b>联动测量探针</b><span>在上方任一平面画布移动鼠标，另一幅图会显示同一空间点。</span><output id="probeValues">等待测量</output></div>
+  </section>
+
+  <article class="case isolated-plane"><div class="case-head"><div class="case-title"><span class="number">C</span><h2>不接地中性金属板</h2></div><span class="tag">二维边界元 · Q板 = 0</span></div><div class="canvas-wrap"><canvas id="isolatedPlateCanvas" role="img" aria-label="外部线电荷靠近不接地中性有限金属板截面的动态感应电荷和电场"></canvas><div class="caption"><b>数值边界解：</b>二维截面中的 q 代表垂直屏幕的无限长线电荷；面元电荷自动调整至整板等势且 ΣQ=0</div></div></article>
+  <p class="science-note"><b>动画阅读方式：</b>发光点只是沿电场方向移动的“示踪标记”，帮助辨认场线方向；静电平衡后金属中的自由电子不再作宏观定向运动。色块表示相对电势，蓝/红短条表示表面电荷的符号与相对大小。</p>
+
+  <section class="insights">
+    <article class="info"><h3>表面电荷不是均匀的</h3><p class="formula">σ(ρ) = <strong>−qd</strong> / 2π(ρ²+d²)<sup>3/2</sup></p><p>正对点电荷的位置密度最大，沿导体表面向远处快速衰减。动画中的短条长度表示 |σ|。</p></article>
+    <article class="info"><h3>为什么外部电场相同？</h3><p>两种模型都满足平面电势 V = 0、无穷远 V → 0，并在外部包含同一个真实点电荷。由静电场唯一性定理，导体外的解必然相同。</p></article>
+    <article class="info warning"><h3>像电荷不是真电荷</h3><p>−q 只应放在被替换掉的区域内，并只用于计算关注区域的场。真实导体内部 E = 0，不存在一个集中在镜像点的电荷。</p></article>
+    <article class="info"><h3>受力可直接算，能量要乘 1/2</h3><p>真实电荷受力可直接使用像电荷产生的场：F = qE<sub>像</sub>。但系统静电能应取 U = ½qφ<sub>感应</sub>，不能把像电荷当成真实的第二个自由电荷计算完整两体能量。</p></article>
+  </section>
+  <section class="sphere-section">
+    <div class="section-heading"><div><div class="kicker">Spherical Conductors · Four Cases</div><h2>球形导体的四种情况</h2></div><p>点电荷 q 位于球外。比较接地与不接地，以及实心球与空心球壳；虚线圆点均为计算用像电荷。</p></div>
+    <div class="controls sphere-controls">
+      <div class="control"><label for="sphereRadius">球半径 R <output id="sphereRadiusOut">1.00</output></label><input id="sphereRadius" type="range" min="0.65" max="1.25" step="0.05" value="1"></div>
+      <div class="control"><label for="sphereDistance">电荷距球心 b <output id="sphereDistanceOut">2.20</output></label><input id="sphereDistance" type="range" min="1.45" max="3" step="0.05" value="2.2"></div>
+      <label class="switch">显示球内虚拟像电荷 <input id="showSphereImages" type="checkbox" checked></label>
+    </div>
+    <div class="sphere-grid">
+      <article class="case sphere-case grounded"><div class="case-head"><div class="case-title"><span class="number">1</span><h2>接地导体实心球</h2></div><span class="tag">V = 0</span></div><div class="canvas-wrap sphere-canvas"><canvas id="groundSolid" role="img" aria-label="接地导体实心球的镜像法动态电场"></canvas></div><div class="sphere-note"><b>1 个偏心像电荷：</b>q′ = −qR/b，r′ = R²/b；接地线可交换电荷，球上净感应电荷为 q′。</div></article>
+      <article class="case sphere-case grounded"><div class="case-head"><div class="case-title"><span class="number">2</span><h2>接地导体球壳</h2></div><span class="tag">空腔内 E = 0</span></div><div class="canvas-wrap sphere-canvas"><canvas id="groundShell" role="img" aria-label="接地导体球壳的镜像法动态电场"></canvas></div><div class="sphere-note"><b>外部场与实心球相同：</b>空腔无真实电荷时，内表面无感应电荷，电荷只分布在外表面。</div></article>
+      <article class="case sphere-case isolated"><div class="case-head"><div class="case-title"><span class="number">3</span><h2>不接地中性导体实心球</h2></div><span class="tag">Q球 = 0</span></div><div class="canvas-wrap sphere-canvas"><canvas id="isolatedSolid" role="img" aria-label="不接地中性导体实心球的镜像法动态电场"></canvas></div><div class="sphere-note"><b>2 个像电荷：</b>除 q′ 外，球心增加 q₀ = +qR/b，使 q′ + q₀ = 0；球面为非零等势面。</div></article>
+      <article class="case sphere-case isolated"><div class="case-head"><div class="case-title"><span class="number">4</span><h2>不接地中性导体球壳</h2></div><span class="tag">Q球壳 = 0</span></div><div class="canvas-wrap sphere-canvas"><canvas id="isolatedShell" role="img" aria-label="不接地中性导体球壳的镜像法动态电场"></canvas></div><div class="sphere-note"><b>外部场与中性实心球相同：</b>外表面同时出现异号感应区域，但积分总电荷为零；空腔内仍 E = 0。</div></article>
+    </div>
+  </section>
+  <footer class="sources">参考：<a href="https://ocw.mit.edu/courses/res-6-002-electromagnetic-field-theory-a-problem-solving-approach-spring-2008/7ee5ddbd5e0abae753e4212a9754ee23_MITRES_6_002S08_chp02_text.pdf" target="_blank" rel="noopener">MIT OpenCourseWare · Electromagnetic Field Theory, Chapter 2</a>；<a href="https://www.feynmanlectures.caltech.edu/II_06.html" target="_blank" rel="noopener">The Feynman Lectures, Vol. II §6-8</a>；<a href="https://farside.ph.utexas.edu/teaching/355/Surveyhtml/node85.html" target="_blank" rel="noopener">UT Austin · Method of Images</a>。</footer>
+</main>
+<script type="module">
+import {
+  imagePlaneField, imagePlanePotential, tracerIndex,
+  linePanelField, linePanelPotential, neutralPlateModel,
+} from "/lab-physics.js";
+
+(() => {
+  const $ = id => document.getElementById(id);
+  const real = $('realCanvas'), image = $('imageCanvas'), isolated = $('isolatedPlateCanvas');
+  const distance = $('distance'), magnitude = $('magnitude'), potential = $('potential');
+  const canvases = [real, image, isolated], cache = new Map(), visible = new Set(canvases);
+  const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
+  let d = +distance.value, q = +magnitude.value, sign = 1, phase = 0;
+  let playing = !motionPreference.matches, last = performance.now(), raf = 0, probe = null;
+  let trails = [], finiteTrails = [], panels = [], panelCharges = [];
+  let finitePotential = 0, solverResidual = 0, boundaryError = 0, modelDistance = null;
+
+  function fit(canvas) {
+    const rect = canvas.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+    const width = Math.max(1, rect.width), height = Math.max(1, rect.height);
+    const pixelWidth = Math.round(width * dpr), pixelHeight = Math.round(height * dpr);
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+      canvas.width = pixelWidth; canvas.height = pixelHeight;
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w: width, h: height, dpr };
+  }
+
+  function map(w, h, x, y) {
+    const scale = Math.min(w / 7.2, h / 5.1);
+    return [w / 2 + x * scale, h * .54 - y * scale, scale];
+  }
+
+  function finitePotentialAt(x, y) {
+    let value = -Math.log(Math.max(1e-12, Math.hypot(x, y - d)));
+    panels.forEach((panel, i) => value += panelCharges[i] * linePanelPotential(x, y, panel));
+    return sign * q * value;
+  }
+
+  function finiteField(x, y) {
+    const dy = y - d, r2 = Math.max(1e-24, x * x + dy * dy);
+    let ex = x / r2, ey = dy / r2;
+    panels.forEach((panel, i) => {
+      const field = linePanelField(x, y, panel);
+      ex += panelCharges[i] * field[0]; ey += panelCharges[i] * field[1];
+    });
+    return [ex, ey]; // Unit positive real charge; tracing geometry is independent of its sign and magnitude.
+  }
+
+  function buildFiniteModel() {
+    const L = 2.75, H = .15;
+    const model = neutralPlateModel(d);
+    panels = model.panels; panelCharges = model.charges;
+    finitePotential = model.potential; solverResidual = model.solverResidual; boundaryError = model.boundaryError;
+    finiteTrails = [];
+    for (let j = 0; j < 24; j++) {
+      const angle = (j + .5) / 24 * Math.PI * 2;
+      let x = .065 * Math.cos(angle), y = d + .065 * Math.sin(angle);
+      const points = [];
+      for (let k = 0; k < 1000; k++) {
+        points.push([x, y]);
+        const [ex, ey] = finiteField(x, y), norm = Math.hypot(ex, ey) || 1;
+        x += ex / norm * .026; y += ey / norm * .026;
+        if ((Math.abs(x) < L + .01 && y < H + .012 && y > -H - .012)
+            || Math.abs(x) > 3.65 || y > 3.8 || y < -2.3) break;
+      }
+      if (points.length > 7) finiteTrails.push(points);
+    }
+  }
+
+  function makeTrails() {
+    trails = [];
+    for (let j = 0; j < 19; j++) {
+      const angle = (j + .5) / 19 * Math.PI * 2;
+      let x = .09 * Math.cos(angle), y = d + .09 * Math.sin(angle);
+      const points = [];
+      for (let k = 0; k < 1000; k++) {
+        points.push([x, y]);
+        const [ex, ey] = imagePlaneField(x, y, d), norm = Math.hypot(ex, ey) || 1;
+        x += ex / norm * .027; y += ey / norm * .027;
+        if (y <= .015 || Math.abs(x) > 3.6 || y > 3.8) break;
+      }
+      if (points.length > 8) trails.push(points);
+    }
+  }
+
+  function heat(ctx, w, h, realMode, finite = false) {
+    if (!potential.checked) return;
+    const size = 16, scale = Math.min(w / 7.2, h / 5.1);
+    for (let py = 0; py < h; py += size) for (let px = 0; px < w; px += size) {
+      const x = (px - w / 2) / scale, y = (h * .54 - py) / scale;
+      if ((realMode && y < 0) || (finite && Math.abs(x) < 2.75 && Math.abs(y) < .17)) continue;
+      const value = finite ? finitePotentialAt(x, y) - sign * q * finitePotential
+        : imagePlanePotential(x, y, d, sign * q);
+      const alpha = Math.min(.17, Math.abs(value) * (finite ? .045 : .055));
+      ctx.fillStyle = value > 0 ? `rgba(255,91,105,${alpha})` : `rgba(72,155,255,${alpha})`;
+      ctx.fillRect(px, py, size + 1, size + 1);
+    }
+  }
+
+  function charge(ctx, w, h, x, y, value, label, dashed = false) {
+    const [px, py] = map(w, h, x, y);
+    ctx.save(); ctx.globalAlpha = dashed ? .65 : 1;
+    if (dashed) ctx.setLineDash([5, 4]);
+    ctx.fillStyle = value > 0 ? '#ff6675' : '#4e9fff';
+    ctx.strokeStyle = '#eaf7ff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(px, py, 17, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle = '#fff'; ctx.font = '800 18px Segoe UI';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(value > 0 ? '+' : '−', px, py - 1);
+    ctx.font = '700 11px Segoe UI'; ctx.fillStyle = '#dceeff'; ctx.fillText(label, px, py - 27);
+    ctx.restore();
+  }
+
+  function fieldLines(ctx, w, h, paths, clipUpper = false) {
+    ctx.save();
+    if (clipUpper) {
+      const [, planeY] = map(w, h, 0, 0);
+      ctx.beginPath(); ctx.rect(0, 0, w, planeY); ctx.clip();
+    }
+    ctx.strokeStyle = 'rgba(104,220,255,.58)'; ctx.lineWidth = 1.25;
+    for (const points of paths) {
+      ctx.beginPath();
+      points.forEach((point, i) => {
+        const [px, py] = map(w, h, ...point);
+        if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+      });
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function markers(ctx, w, h, paths) {
+    ctx.save(); ctx.fillStyle = '#d6f8ff'; ctx.shadowColor = '#58d9ff'; ctx.shadowBlur = 8;
+    paths.forEach((points, j) => {
+      const point = points[tracerIndex(phase, j / paths.length, points.length, sign)];
+      const [px, py] = map(w, h, ...point);
+      ctx.beginPath(); ctx.arc(px, py, 2.8, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  function plane(ctx, w, h, realMode) {
+    const [, py, scale] = map(w, h, 0, 0);
+    ctx.save(); ctx.font = '12px Segoe UI';
+    if (realMode) {
+      ctx.fillStyle = '#172433'; ctx.fillRect(0, py, w, h - py);
+      ctx.strokeStyle = '#b4c9d8'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke();
+      ctx.fillStyle = '#6c8193'; ctx.fillText('接地导体内部：E = 0', 14, py + 28);
+      for (let px = 12; px < w - 12; px += 12) {
+        const x = (px - w / 2) / scale;
+        const sigma = -sign * q * d / (2 * Math.PI * (x * x + d * d) ** 1.5);
+        ctx.fillStyle = sigma > 0 ? '#ff6b78' : '#55a8ff';
+        ctx.fillRect(px - 2, py + 3, 4, Math.min(22, 5 + Math.abs(sigma) * 70));
+      }
+    } else {
+      ctx.strokeStyle = '#8ca5b9'; ctx.setLineDash([7, 6]); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke();
+      ctx.fillStyle = '#7891a7'; ctx.fillText('原导体边界 V = 0（导体已移走）', 14, py - 10);
+    }
+    ctx.restore();
+  }
+
+  function distanceMark(ctx, w, h) {
+    const [x0, y0] = map(w, h, 0, 0), [, yq] = map(w, h, 0, d);
+    ctx.save(); ctx.strokeStyle = '#ffc766'; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(x0 + 30, y0); ctx.lineTo(x0 + 30, yq); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle = '#ffc766'; ctx.font = '700 12px Segoe UI';
+    ctx.fillText(`d = ${d.toFixed(2)}`, x0 + 38, (y0 + yq) / 2); ctx.restore();
+  }
+
+  function drawProbe(ctx, w, h) {
+    if (!probe) return;
+    const [px, py] = map(w, h, probe.x, probe.y);
+    ctx.save(); ctx.strokeStyle = '#ffc766'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(px - 11, py); ctx.lineTo(px + 11, py);
+    ctx.moveTo(px, py - 11); ctx.lineTo(px, py + 11); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle = '#ffc766'; ctx.font = '700 10px Segoe UI';
+    ctx.fillText('P', px + 8, py - 9); ctx.restore();
+  }
+
+  function drawFiniteStatic(ctx, w, h) {
+    heat(ctx, w, h, false, true); fieldLines(ctx, w, h, finiteTrails);
+    const [left, top] = map(w, h, -2.75, .15), [right, bottom] = map(w, h, 2.75, -.15);
+    ctx.fillStyle = '#182838'; ctx.fillRect(left, top, right - left, bottom - top);
+    ctx.strokeStyle = '#d4e7f2'; ctx.lineWidth = 2; ctx.strokeRect(left, top, right - left, bottom - top);
+    ctx.fillStyle = '#71899c'; ctx.font = '12px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillText('导体内部 E = 0 · 总电荷保持为 0', w / 2, (top + bottom) / 2 + 4);
+    panels.forEach((panel, i) => {
+      const value = sign * q * panelCharges[i], [px, py] = map(w, h, panel.x, panel.y);
+      const length = Math.min(13, 3 + Math.abs(value) * 180);
+      ctx.fillStyle = value > 0 ? '#ff6b78' : '#55a8ff';
+      if (panel.ty === 0) ctx.fillRect(px - 2, panel.y > 0 ? py - length : py, 4, length);
+      else ctx.fillRect(panel.x > 0 ? px : px - length, py - 2, length, 4);
+    });
+    charge(ctx, w, h, 0, d, sign * q, '真实 q'); distanceMark(ctx, w, h);
+    const netCharge = sign * q * panelCharges.reduce((sum, value) => sum + value, 0);
+    ctx.textAlign = 'left'; ctx.font = '12px Segoe UI'; ctx.fillStyle = '#91abc0';
+    ctx.fillText(`二维边界元：ΣQ=${netCharge.toExponential(1)} · Vc=${(sign*q*finitePotential).toFixed(3)}`, 14, 22);
+    ctx.fillText(`线性系统残差：${(q*solverResidual).toExponential(1)}`, 14, 40);
+    ctx.fillStyle = '#65e6aa';
+    ctx.fillText(`独立边界采样 max|V−Vc|：${(q*boundaryError).toExponential(1)}`, 14, 58);
+  }
+
+  function staticScene(canvas, surface) {
+    let entry = cache.get(canvas);
+    if (entry && entry.canvas.width === canvas.width && entry.canvas.height === canvas.height) return entry.canvas;
+    const layer = document.createElement('canvas');
+    layer.width = canvas.width; layer.height = canvas.height;
+    const ctx = layer.getContext('2d'), { w, h, dpr } = surface;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (canvas === isolated) drawFiniteStatic(ctx, w, h);
+    else {
+      const realMode = canvas === real;
+      heat(ctx, w, h, realMode); fieldLines(ctx, w, h, trails, realMode); plane(ctx, w, h, realMode);
+      charge(ctx, w, h, 0, d, sign*q, '真实 q');
+      if (!realMode) charge(ctx, w, h, 0, -d, -sign*q, '虚拟 −q', true);
+      distanceMark(ctx, w, h);
+    }
+    entry = { canvas: layer }; cache.set(canvas, entry);
+    return layer;
+  }
+
+  function render() {
+    for (const canvas of canvases) {
+      if (!visible.has(canvas)) continue;
+      const surface = fit(canvas), { ctx, w, h } = surface;
+      ctx.clearRect(0, 0, w, h); ctx.drawImage(staticScene(canvas, surface), 0, 0, w, h);
+      markers(ctx, w, h, canvas === isolated ? finiteTrails : trails);
+      if (canvas !== isolated) drawProbe(ctx, w, h);
+    }
+  }
+
+  function invalidate(rebuild = false) {
+    if (rebuild) cache.clear();
+    if (!raf && !document.hidden && visible.size) raf = requestAnimationFrame(frame);
+  }
+
+  function frame(now) {
+    raf = 0;
+    if (playing) phase = (phase + Math.min(50, Math.max(0, now-last))/6500) % 1;
+    last = now; render();
+    if (playing) invalidate();
+  }
+
+  function setPlaying(value) {
+    playing = value; last = performance.now();
+    $('play').textContent = value ? '暂停示踪动画' : '继续示踪动画';
+    dispatchEvent(new CustomEvent('image-demo-play', { detail: value }));
+    invalidate();
+  }
+
+  function updateProbeReadout() {
+    if (!probe) return;
+    const [ex, ey] = imagePlaneField(probe.x, probe.y, d, sign*q);
+    const value = imagePlanePotential(probe.x, probe.y, d, sign*q);
+    $('probeValues').textContent = `x=${probe.x.toFixed(2)}, y=${probe.y.toFixed(2)} · V=${value.toFixed(3)} · |E|=${Math.hypot(ex,ey).toFixed(3)}（解析解，归一化单位）`;
+  }
+
+  function update() {
+    d = +distance.value; q = +magnitude.value;
+    $('distanceOut').textContent = d.toFixed(2); $('magnitudeOut').textContent = q.toFixed(2);
+    if (modelDistance !== d) { makeTrails(); buildFiniteModel(); modelDistance = d; }
+    updateProbeReadout(); invalidate(true);
+  }
+
+  function moveProbe(event, canvas) {
+    const r = canvas.getBoundingClientRect(), scale = Math.min(r.width/7.2, r.height/5.1);
+    const x = (event.clientX-r.left-r.width/2)/scale, y = (r.height*.54-event.clientY+r.top)/scale;
+    if (y < 0) return;
+    probe = { x, y }; updateProbeReadout(); invalidate();
+  }
+
+  distance.addEventListener('input', update); magnitude.addEventListener('input', update);
+  potential.addEventListener('change', () => invalidate(true));
+  for (const [id, value] of [['positive', 1], ['negative', -1]]) $(id).onclick = () => {
+    sign = value;
+    $('positive').classList.toggle('active', sign > 0); $('negative').classList.toggle('active', sign < 0);
+    update();
+  };
+  $('play').onclick = () => setPlaying(!playing);
+  [real, image].forEach(canvas => {
+    canvas.tabIndex = 0;
+    canvas.addEventListener('pointermove', event => moveProbe(event, canvas));
+    canvas.addEventListener('pointerdown', event => moveProbe(event, canvas));
+    canvas.addEventListener('keydown', event => {
+      if (event.code === 'Space') { event.preventDefault(); setPlaying(!playing); }
+      if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) return;
+      event.preventDefault(); probe ??= { x: .5, y: .5 };
+      if (event.key === 'ArrowLeft') probe.x -= .1;
+      if (event.key === 'ArrowRight') probe.x += .1;
+      if (event.key === 'ArrowUp') probe.y += .1;
+      if (event.key === 'ArrowDown') probe.y = Math.max(0, probe.y - .1);
+      updateProbeReadout(); invalidate();
+    });
+  });
+  const resizeObserver = new ResizeObserver(() => invalidate(true));
+  canvases.forEach(canvas => resizeObserver.observe(canvas.parentElement));
+  const intersectionObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => entry.isIntersecting ? visible.add(entry.target) : visible.delete(entry.target));
+    last = performance.now(); invalidate();
+  });
+  canvases.forEach(canvas => intersectionObserver.observe(canvas));
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { cancelAnimationFrame(raf); raf = 0; }
+    else { last = performance.now(); invalidate(); }
+  });
+  motionPreference.addEventListener('change', event => { if (event.matches) setPlaying(false); });
+  update(); setPlaying(playing);
+})();
+</script>
+<script type="module">
+import { tracerIndex } from "/lab-physics.js";
+
+(() => {
+  const $ = id => document.getElementById(id);
+  const canvases = [
+    { el: $('groundSolid'), grounded: true, shell: false },
+    { el: $('groundShell'), grounded: true, shell: true },
+    { el: $('isolatedSolid'), grounded: false, shell: false },
+    { el: $('isolatedShell'), grounded: false, shell: true },
+  ];
+  const radius = $('sphereRadius'), separation = $('sphereDistance'), showImages = $('showSphereImages');
+  const state = new Map(), pathCache = new Map(), visible = new Set(canvases.map(entry => entry.el));
+  let R = +radius.value, b = +separation.value, progress = .08, last = performance.now(), raf = 0;
+  let playing = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function fit(canvas) {
+    const rect = canvas.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+    const w = Math.max(1, rect.width), h = Math.max(1, rect.height);
+    if (canvas.width !== Math.round(w*dpr) || canvas.height !== Math.round(h*dpr)) {
+      canvas.width = Math.round(w*dpr); canvas.height = Math.round(h*dpr);
+    }
+    const ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w, h, dpr };
+  }
+  function coords(w, h, x, y) {
+    const scale = Math.min(w/5.7, h/4.25);
+    return [w*.34+x*scale, h*.5-y*scale, scale];
+  }
+  function charges(grounded) {
+    const imageCharge = -R/b, imageX = R*R/b;
+    const result = [[b, 0, 1], [imageX, 0, imageCharge]];
+    if (!grounded) result.push([0, 0, -imageCharge]);
+    return result;
+  }
+  function efield(x, y, grounded) {
+    let ex = 0, ey = 0;
+    for (const [cx, cy, value] of charges(grounded)) {
+      const dx = x-cx, dy = y-cy, r2 = Math.max(1e-12, dx*dx+dy*dy);
+      const factor = value/r2**1.5; ex += factor*dx; ey += factor*dy;
+    }
+    return [ex, ey];
+  }
+  function potentialAt(x, y, grounded) {
+    return charges(grounded).reduce((sum, [cx, cy, value]) => sum+value/Math.max(1e-12, Math.hypot(x-cx,y-cy)), 0);
+  }
+  function pathsFor(grounded) {
+    if (pathCache.has(grounded)) return pathCache.get(grounded);
+    const paths = [];
+    for (let j = 0; j < 22; j++) {
+      const angle = (j+.45)/22*Math.PI*2;
+      let x = b+.055*Math.cos(angle), y = .055*Math.sin(angle);
+      const points = [];
+      for (let n = 0; n < 850; n++) {
+        points.push([x,y]);
+        const [ex,ey] = efield(x,y,grounded), norm = Math.hypot(ex,ey)||1;
+        x += ex/norm*.025; y += ey/norm*.025;
+        if (Math.hypot(x,y)<R+.012 || x>3.55 || x< -1.8 || Math.abs(y)>2.1) break;
+      }
+      if (points.length>7) paths.push(points);
+    }
+    pathCache.set(grounded, paths); return paths;
+  }
+  function ghostCharge(ctx,w,h,x,value,label) {
+    const [px,py] = coords(w,h,x,0);
+    ctx.save(); ctx.globalAlpha=.78; ctx.setLineDash([4,3]); ctx.strokeStyle='#eff8ff'; ctx.lineWidth=1.5;
+    ctx.fillStyle=value>0?'#ff6675':'#55a8ff'; ctx.beginPath(); ctx.arc(px,py,10,0,Math.PI*2); ctx.fill();ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle='#fff'; ctx.font='800 12px Segoe UI'; ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(value>0?'+':'−',px,py);ctx.font='700 9px Segoe UI';ctx.fillStyle='#cfe9f9';ctx.fillText(label,px,py-16);ctx.restore();
+  }
+  function actualCharge(ctx,w,h) {
+    const [px,py]=coords(w,h,b,0);
+    ctx.save();ctx.shadowColor='#ff6675';ctx.shadowBlur=12;ctx.fillStyle='#ff6675';ctx.strokeStyle='#fff';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(px,py,15,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#fff';
+    ctx.font='800 17px Segoe UI';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('+',px,py);
+    ctx.font='700 10px Segoe UI';ctx.fillText('真实 q',px,py-23);ctx.restore();
+  }
+  function surfaceCharge(ctx,w,h,grounded) {
+    for(let i=0;i<58;i++) {
+      const angle=i/58*Math.PI*2,x=(R+.018)*Math.cos(angle),y=(R+.018)*Math.sin(angle);
+      const [ex,ey]=efield(x,y,grounded),normal=ex*Math.cos(angle)+ey*Math.sin(angle);
+      const magnitude=Math.min(8,2+Math.abs(normal)*4.2),[px,py]=coords(w,h,R*Math.cos(angle),R*Math.sin(angle));
+      ctx.save();ctx.fillStyle=normal>0?'#ff6b78':'#55a8ff';ctx.translate(px,py);ctx.rotate(-angle);
+      ctx.fillRect(-1.7,-magnitude/2,3.4,magnitude);ctx.restore();
+    }
+  }
+  function build(entry,surface) {
+    const {w,h,dpr}=surface,layer=document.createElement('canvas');
+    layer.width=entry.el.width;layer.height=entry.el.height;
+    const ctx=layer.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+    const cell=13,[cx,cy,scale]=coords(w,h,0,0);
+    for(let py=0;py<h;py+=cell) for(let px=0;px<w;px+=cell) {
+      const x=(px-cx)/scale,y=(cy-py)/scale;
+      if(Math.hypot(x,y)<R)continue;
+      const value=potentialAt(x,y,entry.grounded),alpha=Math.min(.18,Math.abs(value)*.045);
+      ctx.fillStyle=value>0?`rgba(255,97,112,${alpha})`:`rgba(74,158,255,${alpha})`;ctx.fillRect(px,py,cell+1,cell+1);
+    }
+    const paths=pathsFor(entry.grounded);
+    ctx.strokeStyle='rgba(91,211,255,.55)';ctx.lineWidth=1.05;
+    for(const points of paths) {
+      ctx.beginPath();points.forEach((point,i)=>{const [px,py]=coords(w,h,...point);if(i)ctx.lineTo(px,py);else ctx.moveTo(px,py)});ctx.stroke();
+    }
+    const pixelRadius=R*scale;
+    ctx.save();
+    if(entry.shell) {
+      ctx.fillStyle='#06101a';ctx.beginPath();ctx.arc(cx,cy,pixelRadius,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#809bb2';ctx.lineWidth=Math.max(8,pixelRadius*.12);ctx.beginPath();
+      ctx.arc(cx,cy,pixelRadius-Math.max(4,pixelRadius*.06),0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle='#d4e7f2';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,cy,pixelRadius,0,Math.PI*2);ctx.stroke();
+    } else {
+      ctx.fillStyle='#182838';ctx.beginPath();ctx.arc(cx,cy,pixelRadius,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#d4e7f2';ctx.lineWidth=2;ctx.stroke();
+    }
+    ctx.fillStyle='#647d91';ctx.font='10px Segoe UI';ctx.textAlign='center';
+    ctx.fillText(entry.shell?'空腔 E = 0':'导体内部 E = 0',cx,cy+4);ctx.restore();
+    surfaceCharge(ctx,w,h,entry.grounded);
+    if(showImages.checked){ghostCharge(ctx,w,h,R*R/b,-R/b,"q′");if(!entry.grounded)ghostCharge(ctx,w,h,0,R/b,'q₀')}
+    actualCharge(ctx,w,h);
+    ctx.fillStyle='#91abc0';ctx.font='11px Segoe UI';ctx.textAlign='left';
+    ctx.fillText(entry.grounded?'接地：V球 = 0':'不接地中性：Q球 = 0',12,18);
+    ctx.fillStyle='#ffc766';ctx.fillText(`q′=${(-R/b).toFixed(2)}q · r′=${(R*R/b).toFixed(2)}`,12,35);
+    let error=0;const expected=entry.grounded?0:1/b;
+    for(let k=0;k<72;k++){const angle=k/72*Math.PI*2;error=Math.max(error,Math.abs(potentialAt(R*Math.cos(angle),R*Math.sin(angle),entry.grounded)-expected))}
+    ctx.fillStyle='#65e6aa';ctx.fillText(`球面验证 max|V(R,θ)−Vc| = ${error.toExponential(1)}`,12,52);
+    const result={canvas:layer,paths};state.set(entry.el,result);return result;
+  }
+  function render() {
+    for(const entry of canvases) {
+      if(!visible.has(entry.el))continue;
+      const surface=fit(entry.el),{ctx,w,h}=surface;
+      let cached=state.get(entry.el);
+      if(!cached||cached.canvas.width!==entry.el.width||cached.canvas.height!==entry.el.height)cached=build(entry,surface);
+      ctx.clearRect(0,0,w,h);ctx.drawImage(cached.canvas,0,0,w,h);
+      ctx.save();ctx.fillStyle='#e6fbff';ctx.shadowColor='#58d9ff';ctx.shadowBlur=7;
+      cached.paths.forEach((points,j)=>{
+        const point=points[tracerIndex(progress,j/cached.paths.length,points.length)],[px,py]=coords(w,h,...point);
+        ctx.beginPath();ctx.arc(px,py,2.5,0,Math.PI*2);ctx.fill();
+      });ctx.restore();
+    }
+  }
+  function invalidate() {
+    if(!raf&&!document.hidden&&visible.size)raf=requestAnimationFrame(animate);
+  }
+  function animate(now) {
+    raf=0;if(playing)progress=(progress+Math.min(50,Math.max(0,now-last))/7000)%1;
+    last=now;render();if(playing)invalidate();
+  }
+  function rebuild() {
+    R=+radius.value;b=+separation.value;
+    $('sphereRadiusOut').textContent=R.toFixed(2);$('sphereDistanceOut').textContent=b.toFixed(2);
+    state.clear();pathCache.clear();invalidate();
+  }
+  addEventListener('image-demo-play',event=>{playing=event.detail;last=performance.now();invalidate()});
+  radius.addEventListener('input',rebuild);separation.addEventListener('input',rebuild);showImages.addEventListener('change',rebuild);
+  const resizeObserver=new ResizeObserver(()=>{state.clear();invalidate()});
+  canvases.forEach(entry=>resizeObserver.observe(entry.el.parentElement));
+  const intersectionObserver=new IntersectionObserver(entries=>{
+    entries.forEach(entry=>entry.isIntersecting?visible.add(entry.target):visible.delete(entry.target));last=performance.now();invalidate();
+  });
+  canvases.forEach(entry=>intersectionObserver.observe(entry.el));
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){cancelAnimationFrame(raf);raf=0}else{last=performance.now();invalidate()}
+  });
+  rebuild();
+})();
+</script>
+</body>
+</html>

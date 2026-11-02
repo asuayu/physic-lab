@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#07111f">
+    <meta name="description" content="用旋转圆、平移圆、磁汇聚和磁发散模型观察有界磁场中带电粒子的轨迹、交点、荷质比与运动周期。">
     <title>有界磁场中的带电粒子｜旋转圆法</title>
     <style>
         :root {
@@ -71,6 +72,7 @@
 
         input[type="range"] { width: 100%; height: 5px; accent-color: var(--violet); cursor: pointer; }
         .segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         button {
             min-height: 40px;
             border: 1px solid var(--line);
@@ -82,6 +84,8 @@
             transition: .18s ease;
         }
         button:hover { border-color: #4c6787; background: #19304e; transform: translateY(-1px); }
+        button:disabled { cursor: default; opacity: .42; transform: none; }
+        .unavailable { opacity: .5; }
         button.active { border-color: var(--violet); color: #f3efff; background: rgba(167, 139, 250, .15); box-shadow: inset 0 0 0 1px rgba(167,139,250,.1); }
         button.primary { border-color: #7c5ce0; color: #fff; background: linear-gradient(135deg, #7c3aed, #6d5ce7); box-shadow: 0 8px 22px rgba(124, 58, 237, .24); }
         .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -153,8 +157,18 @@
 <body>
     <aside class="controls">
         <div class="eyebrow">Electromagnetism · 02</div>
-        <h1>上边界磁场 · 旋转圆法</h1>
-        <p class="intro">粒子从固定点 O 以相同速率、不同方向发射。轨迹圆绕 O 旋转，并在上方边界板的 P 点离开磁场。</p>
+        <h1>带电粒子 · 典型圆法</h1>
+        <p class="intro">对比平移圆、旋转圆以及粒子束的磁汇聚和磁发散，观察圆心、相位与荷质比的作用。</p>
+
+        <section class="section">
+            <div class="section-title">典型模型</div>
+            <div class="mode-grid" id="modeGroup">
+                <button type="button" data-mode="rotate" class="active">旋转圆</button>
+                <button type="button" data-mode="translate">平移圆</button>
+                <button type="button" data-mode="focus">磁汇聚</button>
+                <button type="button" data-mode="diverge">磁发散</button>
+            </div>
+        </section>
 
         <section class="section">
             <div class="section-title">发射与边界</div>
@@ -197,7 +211,7 @@
 
         <div class="formula">
             <strong>r = mv / |q|B　　s = rθ</strong><br>
-            r 固定时，圆心 C 在以 O 为圆心、r 为半径的圆上移动。先求轨迹圆与直线 y = h 的首个交点 P，再由运动方向确定圆心角 θ 和弧长 s。
+            <span id="modeExplanation">r 固定时，圆心 C 在以 O 为圆心、r 为半径的圆上移动。先求轨迹圆与直线 y = h 的首个交点 P，再由运动方向确定圆心角 θ 和弧长 s。</span>
         </div>
     </aside>
 
@@ -206,17 +220,19 @@
         <div class="readout">
             <div class="readout-head"><span class="pulse" id="pulse"></span><span id="stateText">可到达上板</span></div>
             <div class="readout-grid">
-                <span>交点位置 xₚ</span><b id="positionOut">—</b>
-                <span>圆心角 θ</span><b id="sweepOut">—</b>
-                <span>轨迹长度 s</span><b id="lengthOut">—</b>
-                <span>运动时间 t</span><b id="timeOut">—</b>
+                <span id="positionLabel">交点位置 xₚ</span><b id="positionOut">—</b>
+                <span id="sweepLabel">圆心角 θ</span><b id="sweepOut">—</b>
+                <span id="lengthLabel">轨迹长度 s</span><b id="lengthOut">—</b>
+                <span id="timeLabel">运动时间 t</span><b id="timeOut">—</b>
             </div>
         </div>
         <div class="hint">改变 α：轨迹圆绕发射点 O 旋转，观察交点 P 和弧长 s 的变化</div>
         <canvas id="simCanvas" role="img" tabindex="0" aria-label="带电粒子从固定点以不同方向发射并与磁场上边界相交的旋转圆动态演示"></canvas>
     </main>
 
-    <script>
+    <script type="module">
+        import { magneticOrbit } from "/lab-physics.js";
+
         const canvas = document.getElementById('simCanvas');
         const ctx = canvas.getContext('2d');
         const stage = document.getElementById('stage');
@@ -230,13 +246,16 @@
         const pulse = document.getElementById('pulse');
 
         const state = {
+            demoMode: 'rotate',
             alpha: 62 * Math.PI / 180, height: 1.2, q: 1, B: -1,
             particleT: 0, running: false, rotating: false,
             trail: [], lastTime: 0
         };
-        const colors = { orbit:'#a78bfa', particle:'#fbbf24', velocity:'#4ade80', force:'#fb7185', geometry:'#38bdf8' };
-        // 通过站点访问时使用公共运行时；直接双击 HTML（file://）时使用本地回退，
-        // 避免绝对路径 /lab-runtime.js 无法加载导致动画在第一帧停止。
+        const colors = { orbit:'#a78bfa', particle:'#fbbf24', velocity:'#4ade80', green:'#4ade80', force:'#fb7185', geometry:'#38bdf8' };
+        let raf = 0, pulseColor = null;
+        function setText(id,value){const element=document.getElementById(id);if(element.textContent!==value)element.textContent=value;}
+        function invalidate(){if(!raf&&!document.hidden)raf=requestAnimationFrame(animate);}
+        // Public runtime supplies timing; retain a local timing fallback for isolated previews.
         const frameScale = window.PhysicsLab?.frameScale ?? ((timestamp, previousTimestamp, maxFrames = 3) => {
             if (!Number.isFinite(previousTimestamp) || previousTimestamp <= 0) return 1;
             return Math.min(Math.max(0, timestamp - previousTimestamp) / (1000 / 60), maxFrames);
@@ -245,27 +264,7 @@
         function deg(a) { return a * 180 / Math.PI; }
 
         function model(alpha = state.alpha) {
-            const r = 1, O = {x:0,y:0}, turn = state.q * state.B;
-            // 角度以水平向左为 0°，沿“向左 → 向下 → 向右 → 向上”方向增加。
-            const v = {x:-Math.cos(alpha), y:-Math.sin(alpha)};
-            const C = {x:turn*r*v.y, y:-turn*r*v.x};
-            const phi0 = Math.atan2(-C.y, -C.x), direction = -turn;
-            const vertical = state.height - C.y;
-            const candidates = [];
-            if (Math.abs(vertical) <= r + 1e-9) {
-                const dx = Math.sqrt(Math.max(0, r*r - vertical*vertical));
-                [C.x-dx, C.x+dx].forEach(x => {
-                    const P = {x, y:state.height};
-                    const phi = Math.atan2(P.y-C.y, P.x-C.x);
-                    const sweep = direction > 0 ? mod(phi-phi0) : mod(phi0-phi);
-                    if (sweep > 1e-5) candidates.push({P,phi,sweep});
-                });
-            }
-            candidates.sort((a,b) => a.sweep-b.sweep);
-            const hit = candidates.length > 0;
-            const chosen = hit ? candidates[0] : {P:null, phi:phi0, sweep:Math.PI*2};
-            const tangent = hit && Math.abs(vertical-r) < 1e-7;
-            return {r,O,C,v,turn,direction,phi0,hit,tangent,P:chosen.P,phiP:chosen.phi,sweep:chosen.sweep};
+            return magneticOrbit({ alpha, height: state.height, q: state.q, B: state.B });
         }
 
         function tangentAngles() {
@@ -291,6 +290,7 @@
             canvas.width = Math.round(rect.width*dpr); canvas.height = Math.round(rect.height*dpr);
             canvas.style.width = rect.width+'px'; canvas.style.height = rect.height+'px';
             ctx.setTransform(dpr,0,0,dpr,0,0);
+            invalidate();
         }
         function viewport() {
             const w=stage.clientWidth, h=stage.clientHeight;
@@ -352,7 +352,79 @@
             text('α',{x:O.x-43*Math.cos(state.alpha/2),y:O.y+43*Math.sin(state.alpha/2)},colors.geometry);
         }
 
+        function drawSpecialField() {
+            const w=stage.clientWidth,h=stage.clientHeight;
+            const gradient=ctx.createLinearGradient(0,0,0,h);gradient.addColorStop(0,'rgba(124,58,237,.035)');gradient.addColorStop(1,'rgba(124,58,237,.12)');
+            ctx.fillStyle=gradient;ctx.fillRect(0,0,w,h);
+            ctx.save();ctx.strokeStyle='rgba(167,139,250,.19)';ctx.lineWidth=1;
+            for(let x=28;x<w;x+=42)for(let y=32;y<h;y+=42){ctx.beginPath();ctx.moveTo(x-3,y-3);ctx.lineTo(x+3,y+3);ctx.moveTo(x+3,y-3);ctx.lineTo(x-3,y+3);ctx.stroke();}
+            ctx.restore();
+        }
+
+        function drawOrbitCircle(C,r,color='rgba(167,139,250,.35)',dash=[6,7]) {
+            ctx.save();ctx.strokeStyle=color;ctx.lineWidth=1.3;ctx.setLineDash(dash);ctx.beginPath();ctx.arc(C.x,C.y,r,0,Math.PI*2);ctx.stroke();ctx.restore();
+        }
+
+        function orbitParticle(O,r,phase) {
+            const C={x:O.x-r,y:O.y}, angle=-phase;
+            return {C,P:{x:C.x+r*Math.cos(angle),y:C.y+r*Math.sin(angle)}};
+        }
+
+        function specialReadout(labels,values,title) {
+            ['position','sweep','length','time'].forEach((key,i)=>{
+                setText(key+'Label',labels[i]);
+                setText(key+'Out',values[i]);
+            });
+            setText('stateText',title);
+        }
+
+        function drawSpecialMode(mode) {
+            const w=stage.clientWidth,h=stage.clientHeight;
+            ctx.clearRect(0,0,w,h);drawSpecialField();
+            const t=(state.running||state.particleT>0)?state.particleT:.32;
+            const baseY=h*.60, baseX=w*.53, R=Math.min(92,w*.095,h*.16);
+            const title={translate:'平移圆：入射点与圆心同步平移',focus:'磁汇聚：同荷质比粒子同周期返回',diverge:'磁发散：不同荷质比导致半径与相位分离'}[mode];
+            text(title,{x:w*.58,y:h*.18},'#e5edf7','center',17);
+
+            if(mode==='translate') {
+                const offsets=[-2,-1,0,1,2].map(n=>n*R*1.12);
+                offsets.forEach((dx,i)=>{
+                    const O={x:baseX+dx,y:baseY}, item=orbitParticle(O,R,Math.PI*1.55*t);
+                    drawOrbitCircle(item.C,R,`rgba(167,139,250,${.18+i*.045})`);
+                    dot(O,3.5,'#4ade80');dot(item.C,2.8,'#38bdf8');dot(item.P,6,colors.particle,'#fff5c9');
+                    line(O,item.C,'rgba(56,189,248,.32)',1,[4,5]);
+                    if(i===2)arrow(O,{x:0,y:1},colors.velocity,'v',40);
+                });
+                line({x:baseX-2.4*R,y:baseY+22},{x:baseX+2.4*R,y:baseY+22},'rgba(74,222,128,.55)',1.2,[5,5]);
+                text('入射点整体平移 Δx',{x:baseX,y:baseY+46},'#9fb5cc','center',13);
+                specialReadout(['轨迹圆数量','半径关系','速度关系','圆心位移'],['5 个','r 相同','v 平行同速','ΔC = ΔO'],'平移圆演示');
+            } else if(mode==='focus') {
+                const radii=[.58,.72,.86,1,1.14,1.28,1.42].map(k=>R*k);
+                const O={x:baseX-R*.15,y:baseY+R*.55}, phase=Math.PI*2*t;
+                radii.forEach((r,i)=>{
+                    const item=orbitParticle(O,r,phase);drawOrbitCircle(item.C,r,`rgba(56,189,248,${.14+i*.035})`);
+                    dot(item.P,5,i===3?colors.particle:'rgba(251,191,36,.72)');
+                });
+                dot(O,7,colors.green,'#eafff0');text('焦点 O',{x:O.x-11,y:O.y+24},colors.green,'right',13);
+                text('不同速率 → 不同 r；相同 q/m → 相同 ω',{x:w*.58,y:h*.84},'#9fb5cc','center',13);
+                specialReadout(['速率范围','轨道半径','角速度 ω','汇聚时刻'],['0.58v–1.42v','∝ v','相同','T = 2π/ω'],'同周期磁汇聚');
+            } else {
+                const factors=[.62,.78,.92,1.08,1.25,1.45];
+                const O={x:baseX-R*.55,y:baseY+R*.55};
+                factors.forEach((k,i)=>{
+                    const r=R/k, phase=Math.PI*1.55*k*t, item=orbitParticle(O,r,phase);
+                    drawOrbitCircle(item.C,r,`rgba(251,113,133,${.12+i*.04})`);
+                    dot(item.P,5,`hsl(${35-i*5} 90% ${62+i*2}%)`);
+                });
+                dot(O,7,colors.green,'#eafff0');text('同一入射点',{x:O.x-10,y:O.y+25},colors.green,'right',13);
+                text('q/m 不同 → r = mv/|q|B、ω = |q|B/m 均不同',{x:w*.58,y:h*.84},'#9fb5cc','center',13);
+                specialReadout(['荷质比范围','轨道半径','角速度 ω','束流结果'],['0.62–1.45','各不相同','各不相同','逐渐分离'],'荷质比分散');
+            }
+            document.getElementById('positionOut').style.color=mode==='diverge'?colors.force:mode==='focus'?colors.velocity:'';
+        }
+
         function draw() {
+            if(state.demoMode!=='rotate'){drawSpecialMode(state.demoMode);return;}
             const vp=viewport(), m=model(), O=screen(m.O,vp), C=screen(m.C,vp);
             const plateY=screen({x:0,y:state.height},vp).y;
             ctx.clearRect(0,0,stage.clientWidth,stage.clientHeight); drawField(vp,plateY);
@@ -399,12 +471,12 @@
             updateReadout(m);
         }
         function updateReadout(m) {
-            document.getElementById('positionOut').textContent=m.hit?(m.P.x>=0?'+':'')+m.P.x.toFixed(3)+' r':'不可达';
-            document.getElementById('sweepOut').textContent=m.hit?deg(m.sweep).toFixed(1)+'°':'—';
-            document.getElementById('lengthOut').textContent=m.hit?m.sweep.toFixed(3)+' r':'—';
-            document.getElementById('timeOut').textContent=m.hit?m.sweep.toFixed(3)+' / ω':'—';
+            setText('positionOut',m.hit?(m.P.x>=0?'+':'')+m.P.x.toFixed(3)+' r':'不可达');
+            setText('sweepOut',m.hit?deg(m.sweep).toFixed(1)+'°':'—');
+            setText('lengthOut',m.hit?m.sweep.toFixed(3)+' r':'—');
+            setText('timeOut',m.hit?m.sweep.toFixed(3)+' / ω':'—');
         }
-        function resetParticle(){state.running=false;state.particleT=0;state.trail=[];launchBtn.textContent='▶ 发射粒子';}
+        function resetParticle(){state.running=false;state.particleT=0;state.trail=[];state.lastTime=0;launchBtn.textContent=state.demoMode==='rotate'?'▶ 发射粒子':'▶ 播放粒子束';invalidate();}
         function displayAngle(){const value=deg(state.alpha);return (Math.abs(value-Math.round(value))<.005?Math.round(value):value.toFixed(3))+'°';}
         function syncInputs(){angleInput.value=deg(state.alpha);angleValue.textContent=displayAngle();heightValue.textContent=state.height.toFixed(2);}
         angleInput.addEventListener('input',()=>{
@@ -416,8 +488,17 @@
         heightInput.addEventListener('input',()=>{state.height=Number(heightInput.value);heightValue.textContent=state.height.toFixed(2);resetParticle();});
         document.querySelectorAll('#chargeGroup button').forEach(btn=>btn.addEventListener('click',()=>{state.q=Number(btn.dataset.sign);document.querySelectorAll('#chargeGroup button').forEach(b=>b.classList.toggle('active',b===btn));resetParticle();}));
         document.querySelectorAll('#fieldGroup button').forEach(btn=>btn.addEventListener('click',()=>{state.B=Number(btn.dataset.sign);document.querySelectorAll('#fieldGroup button').forEach(b=>b.classList.toggle('active',b===btn));resetParticle();}));
-        launchBtn.addEventListener('click',()=>{if(state.particleT>=1){state.particleT=0;state.trail=[];}state.running=!state.running;launchBtn.textContent=state.running?'Ⅱ 暂停粒子':'▶ 继续运动';});
-        rotateBtn.addEventListener('click',()=>{state.rotating=!state.rotating;resetParticle();rotateBtn.classList.toggle('active',state.rotating);rotateBtn.textContent=state.rotating?'Ⅱ 停止改变':'⟳ 自动改变方向';});
+        launchBtn.addEventListener('click',()=>{
+            if(state.particleT>=1){state.particleT=0;state.trail=[];}
+            state.rotating=false;rotateBtn.classList.remove('active');rotateBtn.textContent='⟳ 自动改变方向';
+            state.running=!state.running;state.lastTime=0;
+            launchBtn.textContent=state.running?'Ⅱ 暂停粒子':'▶ 继续运动';invalidate();
+        });
+        rotateBtn.addEventListener('click',()=>{
+            state.rotating=!state.rotating;resetParticle();
+            rotateBtn.classList.toggle('active',state.rotating);
+            rotateBtn.textContent=state.rotating?'Ⅱ 停止改变':'⟳ 自动改变方向';invalidate();
+        });
         tangentBtn.addEventListener('click',()=>{
             const angle=nearestTangentAngle();
             if(angle===null){tangentBtn.textContent='当前板距不存在相切轨迹';setTimeout(()=>tangentBtn.textContent='⊥ 跳到临界相切角',1400);return;}
@@ -425,20 +506,81 @@
         });
         document.getElementById('reset').addEventListener('click',()=>{
             state.alpha=62*Math.PI/180;state.height=1.2;state.q=1;state.B=-1;state.rotating=false;heightInput.value=1.2;
+            setMode('rotate');
             document.querySelectorAll('#chargeGroup button').forEach(b=>b.classList.toggle('active',b.dataset.sign==='1'));
             document.querySelectorAll('#fieldGroup button').forEach(b=>b.classList.toggle('active',b.dataset.sign==='-1'));
             rotateBtn.classList.remove('active');rotateBtn.textContent='⟳ 自动改变方向';resetParticle();syncInputs();
         });
-        document.querySelectorAll('.checks input').forEach(input=>input.addEventListener('change',draw));
+        const modeDescriptions={
+            rotate:'r 固定时，圆心 C 在以 O 为圆心、r 为半径的圆上移动。先求轨迹圆与直线 y = h 的首个交点 P，再由运动方向确定圆心角 θ 和弧长 s。',
+            translate:'固定 q > 0、B 向里和竖直向上的初速度。平移发射点时，半径和转向不变，圆心随发射点平移相同距离。',
+            focus:'固定 q > 0、B 向里。不同速率粒子的半径不同，但荷质比相同时 ω = |q|B/m 相同，经过一个周期同时回到发射点。',
+            diverge:'固定同速、同方向入射和 B 向里。粒子的正荷质比不同，因此半径与角速度均不同，束流逐渐分离。',
+        };
+        function setMode(mode){
+            state.demoMode=mode;state.rotating=false;
+            const rotationMode=mode==='rotate';
+            if(!rotationMode){
+                state.q=1;state.B=-1;
+                document.querySelectorAll('#chargeGroup button').forEach(button=>button.classList.toggle('active',button.dataset.sign==='1'));
+                document.querySelectorAll('#fieldGroup button').forEach(button=>button.classList.toggle('active',button.dataset.sign==='-1'));
+            }
+            document.querySelectorAll('#modeGroup button').forEach(button=>{
+                const active=button.dataset.mode===mode;
+                button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
+            });
+            [angleInput,heightInput,rotateBtn,tangentBtn,...document.querySelectorAll('#chargeGroup button,#fieldGroup button,.checks input')]
+                .forEach(control=>control.disabled=!rotationMode);
+            [angleInput.closest('section'),document.getElementById('chargeGroup').closest('section'),document.querySelector('.checks').closest('section')]
+                .forEach(section=>section.classList.toggle('unavailable',!rotationMode));
+            setText('modeExplanation',modeDescriptions[mode]);
+            document.querySelector('.hint').textContent=rotationMode
+                ?'改变 α：轨迹圆绕发射点 O 旋转，观察交点 P 和弧长 s 的变化'
+                :'本模式采用说明中的固定参数；点击“播放粒子束”观察运动';
+            if(rotationMode){
+                specialReadout(['交点位置 xₚ','圆心角 θ','轨迹长度 s','运动时间 t'],['—','—','—','—'],'旋转圆');
+                document.getElementById('positionOut').style.color='';
+            }
+            rotateBtn.classList.remove('active');rotateBtn.textContent='⟳ 自动改变方向';
+            resetParticle();
+        }
+        document.querySelectorAll('#modeGroup button').forEach(button=>button.addEventListener('click',()=>setMode(button.dataset.mode)));
+        document.querySelectorAll('.checks input').forEach(input=>input.addEventListener('change',invalidate));
+        canvas.addEventListener('keydown',event=>{
+            if(event.code==='Space'){event.preventDefault();launchBtn.click();}
+        });
         function animate(timestamp){
+            raf=0;
             const dt=frameScale(timestamp,state.lastTime,2.5);state.lastTime=timestamp;
             if(state.rotating){state.alpha=mod(state.alpha+.0055*dt);syncInputs();}
-            if(state.running){const m=model();state.particleT=Math.min(1,state.particleT+.006*dt/Math.max(.55,m.sweep/Math.PI));if(Math.floor(timestamp/28)!==Math.floor((timestamp-16.7*dt)/28))state.trail.push(pointOnOrbit(m,state.particleT));if(state.trail.length>60)state.trail.shift();if(state.particleT>=1){state.running=false;launchBtn.textContent=m.hit?'↻ 再次发射':'↻ 未碰板，再试一次';}}
-            const m=model();document.getElementById('stateText').textContent=state.rotating?'发射方向改变中':state.running?'粒子运动中':m.tangent?'临界状态：轨迹与板相切':m.hit?(state.particleT>=1?'已到达上板':'轨迹与板相交'):'当前方向无法到达上板';
-            pulse.style.background=m.hit?(state.running?colors.particle:colors.velocity):colors.force;pulse.style.boxShadow=`0 0 10px ${pulse.style.background}`;
-            draw();requestAnimationFrame(animate);
+            if(state.running){
+                const m=model();
+                // Fixed cyclotron angular speed: short and long arcs differ only in flight time.
+                const increment=state.demoMode==='rotate'?.006*Math.PI*dt/m.sweep:.006*dt;
+                state.particleT=Math.min(1,state.particleT+increment);
+                if(state.demoMode==='rotate'&&Math.floor(timestamp/28)!==Math.floor((timestamp-16.7*dt)/28))state.trail.push(pointOnOrbit(m,state.particleT));
+                if(state.trail.length>60)state.trail.shift();
+                if(state.particleT>=1){
+                    state.running=false;
+                    launchBtn.textContent=state.demoMode!=='rotate'?'↻ 再次播放':m.hit?'↻ 再次发射':'↻ 未碰板，再试一次';
+                }
+            }
+            const m=model();
+            if(state.demoMode==='rotate'){
+                setText('stateText',state.rotating?'发射方向改变中':state.running?'粒子运动中':m.tangent?'临界状态：轨迹与板相切':m.hit?(state.particleT>=1?'已到达上板':'轨迹与板相交'):'当前方向无法到达上板');
+            }
+            const color=state.demoMode==='rotate'&&!m.hit?colors.force:state.running?colors.particle:colors.velocity;
+            if(pulseColor!==color){pulseColor=color;pulse.style.background=color;pulse.style.boxShadow=`0 0 10px ${color}`;}
+            draw();
+            if(state.running||state.rotating)invalidate();
         }
-        window.addEventListener('resize',resize);resize();syncInputs();requestAnimationFrame(animate);
+        document.addEventListener('visibilitychange',()=>{
+            if(document.hidden){cancelAnimationFrame(raf);raf=0;}
+            else{state.lastTime=0;invalidate();}
+        });
+        window.addEventListener('resize',resize);
+        new ResizeObserver(resize).observe(stage);
+        resize();syncInputs();setMode('rotate');
     </script>
 </body>
 </html>
