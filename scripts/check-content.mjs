@@ -10,6 +10,7 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const publicDir = join(root, "public");
 const errors = [];
 const origin = "https://physics-lab.invalid";
+const experimentFiles = new Set(allExperiments.map(item => resolve(publicDir, "." + item.link)));
 
 async function filesWithin(dir) {
     const entries = await readdir(dir, { withFileTypes: true });
@@ -92,11 +93,13 @@ for (const file of htmlFiles) {
     const required = [
         [nodes.some((node) => node.tagName === "title" && text(node).trim()), "缺少标题"],
         [nodes.some((node) => node.tagName === "meta" && attr(node, "name") === "viewport"), "缺少 viewport"],
-        [nodes.some((node) => node.tagName === "canvas" || (node.tagName === "svg" && attr(node, "data-lab-export") !== undefined)), "缺少 Canvas 或可导出的 SVG 演示"],
         [nodes.some((node) => node.tagName === "a" && attr(node, "href") === "/"), "缺少返回展厅入口"],
+    ];
+    if (experimentFiles.has(file)) required.push(
+        [nodes.some((node) => node.tagName === "canvas" || (node.tagName === "svg" && attr(node, "data-lab-export") !== undefined)), "缺少 Canvas 或可导出的 SVG 演示"],
         [nodes.some((node) => node.tagName === "link" && attr(node, "href") === "/lab-common.css"), "未加载公共样式"],
         [nodes.some((node) => node.tagName === "script" && attr(node, "src") === "/lab-runtime.js"), "未加载公共运行时"],
-    ];
+    );
     for (const [ok, message] of required) if (!ok) errors.push(`${label}: ${message}`);
     const trees = [];
     for (const node of nodes) {
@@ -180,9 +183,9 @@ for (const file of htmlFiles) {
 }
 for (const file of publicFiles) {
     if (extname(file) === ".css") await checkCss(await readFile(file, "utf8"), file);
-    if (extname(file) === ".js") {
+    if ([".js", ".mjs"].includes(extname(file))) {
         const source = await readFile(file, "utf8");
-        const tree = syntaxTree(source, relative(publicDir, file), /^\s*(?:import|export)\s/m.test(source));
+        const tree = syntaxTree(source, relative(publicDir, file), extname(file) === ".mjs" || /^\s*(?:import|export)\s/m.test(source));
         if (tree) await scriptResources(tree, file);
     }
 }

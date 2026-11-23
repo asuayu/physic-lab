@@ -65,6 +65,16 @@ Astro 开发服务器默认位于 `http://localhost:4321`，仅预览静态实�
 
 Windows 云同步目录若出现依赖文件 `UNKNOWN: unknown error, read`，先在不参与同步的本地目录用同一锁文件执行 `npm ci` 和 `npm run validate:full`，区分文件系统问题与代码错误；不要依赖跨机器同步的 `node_modules`。
 
+## 高考物理题库
+
+首页的“高考题库”打开 `/gaokao-bank/`。从左侧选择年份，可按试卷筛选并把跨年份的题目加入题目栏。题目栏保存在当前浏览器，可调整题序后下载 Word `.docx`，或通过打印预览将试卷另存为 PDF。导出使用题干、选项、公式及配图。
+
+题目来自 [gaokao-physics-archive](https://github.com/YLXDXX/gaokao-physics-archive) 的本地题库索引。资料更新后，可在项目根目录重新导入。网站按年加载生成的数据，无需访问资料仓库原目录或本机数据库。
+
+```powershell
+python scripts/import-gaokao.py --source 'D:\OneDrive\HLJY\codespace\资料仓库'
+```
+
 ## 圆环碰撞演示
 
 `public/圆环碰撞.html` 改编自本地圆环碰撞教学项目，对应 2024 湖南物理第 15 题第三问。模型、交互、样式及离线导出分别位于 `public/ring-collision/`。假设圆环光滑固定、mA > mB、0.2 ≤ e ≤ 1，n 最大 40。Q 是累计加权弧坐标，V = dQ/dt 恒定，P 仅将 Q 绕回圆环，不代表平面质心。模型通过分段精确时刻与有理数圈数余量避免后期相位丢失；极大时长使用科学计数，区间压缩不代表真实时间。

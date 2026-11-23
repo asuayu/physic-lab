@@ -64,6 +64,26 @@ const structuredData = {
                 font-size: 1.1rem;
                 margin-bottom: 0;
             }
+            .site-sections {
+                display: flex;
+                justify-content: center;
+                gap: 8px;
+                margin: 24px auto 0;
+            }
+            .site-sections a {
+                border: 1px solid #475569;
+                border-radius: 8px;
+                color: #cbd5e1;
+                padding: 9px 16px;
+                text-decoration: none;
+            }
+            .site-sections a[aria-current="page"] {
+                background: #1e293b;
+                border-color: #38bdf8;
+                color: #7dd3fc;
+            }
+            .site-sections a:hover { color: #7dd3fc; }
+            .site-sections a:focus-visible { outline: 3px solid #38bdf8; outline-offset: 3px; }
             [hidden] { display: none !important; }
             .skip-link { position: absolute; top: -80px; left: 16px; background: #0f172a; padding: 12px; color: #38bdf8; z-index: 10; }
             .skip-link:focus { top: 12px; }
@@ -302,6 +322,10 @@ const structuredData = {
         <div class="header">
             <h1>PHYSICS LAB</h1>
             <p>探索物理世界 · 点击卡片进入沉浸式交互沙盒</p>
+            <nav class="site-sections" aria-label="网站栏目">
+                <a href="/" aria-current="page">互动实验</a>
+                <a href="/gaokao-bank/">高考题库</a>
+            </nav>
         </div>
         <section class="search-tools" aria-label="搜索实验">
             <label for="experiment-search">搜索实验名称、现象或物理领域</label>

@@ -1,0 +1,174 @@
+.gaokao-print-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: #e8edf3;
+  color: #151515;
+  color-scheme: light;
+  font-family: "Noto Serif CJK SC", "Songti SC", "SimSun", serif;
+}
+
+.gaokao-print-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.6rem 1rem;
+  background: #142b45;
+  color: #fff;
+  font: 0.9rem system-ui, sans-serif;
+}
+
+.gaokao-print-toolbar p {
+  margin: 0;
+}
+
+.gaokao-print-toolbar button {
+  min-height: 2.3rem;
+  padding: 0.3rem 0.85rem;
+  border: 1px solid #bdcde0;
+  border-radius: 0.25rem;
+  background: white;
+  color: #142b45;
+  font: inherit;
+  cursor: pointer;
+}
+
+.gaokao-print-toolbar button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.gaokao-print-toolbar button:not(:disabled):hover {
+  background: #dfeafa;
+}
+
+.gaokao-print-sheet {
+  box-sizing: border-box;
+  max-width: 210mm;
+  margin: 1rem auto;
+  padding: min(7vw, 18mm);
+  background: white;
+  font-size: 11pt;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.gaokao-print-sheet h1 {
+  margin: 0 0 1rem;
+  font-size: 20pt;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.gaokao-print-sheet h2 {
+  margin: 0 0 0.35em;
+  font-size: 11pt;
+  line-height: 1.4;
+  break-after: avoid;
+}
+
+.gaokao-print-sheet section {
+  margin: 0 0 1em;
+}
+
+.gaokao-print-question :is(p, ol, ul) {
+  margin: 0.45em 0;
+}
+
+.gaokao-print-question :is(ol, ul) {
+  padding-inline-start: 1.7em;
+}
+
+.gaokao-print-question .choices {
+  padding-inline-start: 0;
+  list-style: none;
+}
+
+.gaokao-print-question .figures {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: 0.35em 0.75em;
+  margin: 0.4em 0;
+}
+
+.gaokao-print-question figure {
+  margin: 0.2em 0;
+  max-width: 100%;
+  break-inside: avoid;
+}
+
+.gaokao-print-question img {
+  display: block;
+  max-width: 100%;
+  max-height: 100mm;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  break-inside: avoid;
+}
+
+.gaokao-print-question figcaption {
+  text-align: center;
+  font-size: 9pt;
+}
+
+.gaokao-print-question table {
+  margin: 0.4em 0;
+  border-collapse: collapse;
+  font-size: 10pt;
+}
+
+.gaokao-print-question :is(th, td) {
+  padding: 0.18em 0.3em;
+  border: 1px solid #666;
+  text-align: center;
+}
+
+.gaokao-print-question tr {
+  break-inside: avoid;
+}
+
+.gaokao-print-question .gaokao-math-source {
+  font-family: monospace;
+}
+
+@page {
+  size: A4;
+  margin: 16mm 17mm;
+}
+
+@media print {
+  html:has(.gaokao-print-preview),
+  body:has(> .gaokao-print-preview) {
+    overflow: visible !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  body:has(> .gaokao-print-preview) > :not(.gaokao-print-preview),
+  .gaokao-print-toolbar {
+    display: none !important;
+  }
+
+  .gaokao-print-preview {
+    position: static;
+    overflow: visible;
+    background: white;
+  }
+
+  .gaokao-print-sheet {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+}

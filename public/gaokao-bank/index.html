@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="按年份和试卷浏览历年高考物理真题，挑选题目并导出 Word 或 PDF。">
+  <meta name="theme-color" content="#0f172a">
+  <title>高考物理题库 | 物理互动演示实验室</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./vendor/katex/katex.min.css">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./vendor/katex/katex.min.js" defer></script>
+  <script src="./vendor/katex/contrib/mhchem.min.js" defer></script>
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <a class="skip-link" href="#questions">跳转到试题</a>
+  <header class="site-header">
+    <nav class="site-nav" aria-label="网站导航">
+      <a class="home-link" href="/">物理互动演示实验室</a>
+      <span class="current-link" aria-current="page">高考题库</span>
+    </nav>
+  </header>
+
+  <div class="workspace">
+    <header class="page-heading">
+      <h1>高考物理题库</h1>
+      <p id="archive-summary" class="muted" hidden></p>
+    </header>
+
+    <aside class="year-panel" aria-labelledby="years-heading">
+      <h2 id="years-heading" class="panel-heading">年份</h2>
+      <div id="year-list" class="year-list"></div>
+    </aside>
+
+    <main id="questions" class="questions" tabindex="-1">
+      <div class="results-header">
+        <div class="results-title">
+          <h2 id="results-heading" tabindex="-1">历年真题</h2>
+          <p id="result-count" class="muted" aria-live="polite"></p>
+        </div>
+        <div id="filters" class="filters" hidden>
+          <label for="paper-filter">试卷</label>
+          <select id="paper-filter"></select>
+          <label for="type-filter">题型</label>
+          <select id="type-filter"></select>
+        </div>
+      </div>
+
+      <div id="question-state" class="question-state" role="status">正在载入题库…</div>
+      <div id="question-list" class="question-list"></div>
+      <nav id="pagination" class="pagination" aria-label="试题分页" hidden>
+        <button id="previous-page" type="button">上一页</button>
+        <span id="page-position"></span>
+        <button id="next-page" type="button">下一页</button>
+      </nav>
+      <noscript><p class="question-state">请启用 JavaScript 以浏览题库和导出试题。</p></noscript>
+      <footer class="archive-source">
+        真题来源 <a href="https://github.com/YLXDXX/gaokao-physics-archive">高考物理真题档案库</a>
+      </footer>
+    </main>
+
+    <div id="basket-location" class="basket-location">
+      <aside id="basket" class="basket" aria-labelledby="basket-heading">
+        <div class="basket-heading-row">
+          <h2 id="basket-heading" class="panel-heading" tabindex="-1">题目栏</h2>
+          <span id="basket-count" class="count-pill" aria-label="已选 0 题">0</span>
+          <button id="close-basket" class="close-button" type="button" hidden>关闭</button>
+        </div>
+        <p id="basket-empty" class="basket-empty muted">从真题列表加入题目，再按选题顺序导出。</p>
+        <ol id="basket-list" class="basket-list" hidden></ol>
+        <div class="basket-actions">
+          <button id="export-word" class="primary-button" type="button" disabled>导出 Word</button>
+          <button id="export-pdf" type="button" disabled>导出 PDF</button>
+        </div>
+        <p id="basket-status" class="basket-status" role="status"></p>
+      </aside>
+    </div>
+  </div>
+
+  <div class="mobile-basket-bar">
+    <button id="open-basket" class="primary-button" type="button" aria-haspopup="dialog" aria-controls="basket-dialog">题目栏 · 0 题</button>
+  </div>
+  <dialog id="basket-dialog" aria-labelledby="basket-heading"></dialog>
+</body>
+</html>

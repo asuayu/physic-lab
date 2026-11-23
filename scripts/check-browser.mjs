@@ -4,11 +4,12 @@ import { readFile, readdir, stat, mkdir } from "node:fs/promises";
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { visibleExperiments } from "../src/data/experiments.mjs";
+import { allExperiments, visibleExperiments } from "../src/data/experiments.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const dist = resolve(root, "dist");
-const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".ico": "image/x-icon" };
+const dist = resolve(root, process.env.BROWSER_TEST_DIST || "dist");
+const mime = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".json": "application/json", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".woff2": "font/woff2", ".ico": "image/x-icon" };
+const experimentPaths = new Set(allExperiments.map(item => item.link));
 let server;
 let browser;
 async function htmlPaths(dir, prefix = "") {
@@ -72,16 +73,18 @@ try {
             pageErrors.length = 0;
             assetFailures.length = 0;
             await page.goto(new URL(path, baseUrl).href, { waitUntil: "networkidle" });
-            await page.waitForFunction(() => [...document.querySelectorAll("canvas, svg[data-lab-export]")].some((surface) => {
-                const box = surface.getBoundingClientRect();
-                return box.width > 0 && box.height > 0 && (surface.localName === "svg"
-                    ? surface.viewBox.baseVal.width > 0 && surface.viewBox.baseVal.height > 0
-                    : surface.width > 0 && surface.height > 0);
-            }));
+            if (experimentPaths.has(path)) {
+                await page.waitForFunction(() => [...document.querySelectorAll("canvas, svg[data-lab-export]")].some((surface) => {
+                    const box = surface.getBoundingClientRect();
+                    return box.width > 0 && box.height > 0 && (surface.localName === "svg"
+                        ? surface.viewBox.baseVal.width > 0 && surface.viewBox.baseVal.height > 0
+                        : surface.width > 0 && surface.height > 0);
+                }));
+                const launcherBox = await page.locator(".pl-comments-launcher").boundingBox();
+                assert.ok(launcherBox.width < 180, `${path} comment launcher must not inherit full-width page buttons`);
+            }
             assert.deepEqual(pageErrors, [], `${path} (${viewport.width}px) pageerror`);
             assert.deepEqual(assetFailures, [], `${path} (${viewport.width}px) missing resources`);
-            const launcherBox = await page.locator(".pl-comments-launcher").boundingBox();
-            assert.ok(launcherBox.width < 180, `${path} comment launcher must not inherit full-width page buttons`);
         }
         console.log(`页面加载与资源检查通过：${pages.length} 页，${viewport.width}px。`);
         await page.goto(baseUrl, { waitUntil: "networkidle" });
@@ -106,6 +109,39 @@ try {
             await mkdir(output, { recursive: true });
             await page.screenshot({ path: join(output, `gallery-${viewport.width}.png`) });
         }
+
+        await page.getByRole("link", { name: "高考题库", exact: true }).click();
+        const yearButtons = page.locator("#year-list button");
+        const addQuestion = page.locator("#question-list").getByRole("button", { name: "加入题目栏" }).first();
+        await addQuestion.waitFor();
+        const years = await yearButtons.evaluateAll(buttons => buttons.map(button => Number(button.dataset.year)));
+        assert.ok(years.length > 1 && years.every((year, index) => index === 0 || year < years[index - 1]), "Gaokao years must be newest first");
+        await addQuestion.click();
+        await yearButtons.nth(1).click();
+        await addQuestion.click();
+        await page.reload();
+        await yearButtons.first().waitFor();
+        const mobileBasket = page.locator("#open-basket");
+        if (await mobileBasket.isVisible()) await mobileBasket.click();
+        const word = page.locator("#export-word");
+        await word.waitFor();
+        await page.waitForFunction(() => !document.querySelector("#export-word").disabled);
+        const selectedTitles = page.locator("#basket-list .basket-item-title");
+        const savedOrder = await selectedTitles.allTextContents();
+        assert.equal(savedOrder.length, 2, "Gaokao basket must persist questions from both years");
+        await page.locator('#basket-list [data-basket-action="down"]').first().click();
+        assert.deepEqual(await selectedTitles.allTextContents(), savedOrder.toReversed());
+        const downloadPromise = page.waitForEvent("download");
+        await word.click();
+        assert.match((await downloadPromise).suggestedFilename(), /\.docx$/i);
+        await page.evaluate(() => { window.print = () => { window.document.body.dataset.printed = "true"; }; });
+        await page.locator("#export-pdf").click();
+        await page.waitForFunction(() => document.body.dataset.printed === "true");
+        assert.equal(await page.locator(".gaokao-print-question").count(), 2);
+        await page.locator(".gaokao-print-close").click();
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "Gaokao question bank must fit mobile width");
+        assert.deepEqual(pageErrors, [], `Gaokao bank (${viewport.width}px)`);
+        assert.deepEqual(assetFailures, [], `Gaokao bank resources (${viewport.width}px)`);
 
         await page.goto(new URL("/科里奥利效应.html", baseUrl).href, { waitUntil: "networkidle" });
         const play = page.locator("#play");
