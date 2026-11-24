@@ -110,7 +110,14 @@ try {
             await page.screenshot({ path: join(output, `gallery-${viewport.width}.png`) });
         }
 
-        await page.getByRole("link", { name: "高考题库", exact: true }).click();
+        const practiceFilter = page.getByRole("button", { name: "练习题演示", exact: true });
+        const bankLink = page.getByRole("link", { name: "高考题库", exact: true });
+        const [practiceBox, bankBox] = await Promise.all([practiceFilter.boundingBox(), bankLink.boundingBox()]);
+        assert.ok(practiceBox && bankBox && Math.abs(practiceBox.y - bankBox.y) < 1
+            && bankBox.x >= practiceBox.x + practiceBox.width, "Gaokao bank must sit next to the practice demos");
+        await practiceFilter.click();
+        assert.equal(new URL(page.url()).searchParams.get("category"), "exercise-demo");
+        await bankLink.click();
         const yearButtons = page.locator("#year-list button");
         const addQuestion = page.locator("#question-list").getByRole("button", { name: "加入题目栏" }).first();
         await addQuestion.waitFor();
